@@ -1,0 +1,58 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: 格式检查
+    runs-on: ubuntu-latest
+    steps:
+      - name: 签出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+
+      - name: 缓存依赖
+        uses: Swatinem/rust-cache@v2
+
+      - name: 运行 Clippy
+        run: cargo clippy --all-targets --all-features
+
+      - name: 格式检查
+        run: cargo fmt -- --check
+
+  test:
+    name: Test on ${{ matrix.os }} with Rust ${{ matrix.rust }}
+    needs: lint
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        rust: [stable]
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 签出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: 缓存依赖
+        uses: Swatinem/rust-cache@v2
+
+      - name: 运行测试
+        run: cargo test --all-features
+
