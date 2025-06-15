@@ -22,7 +22,7 @@
 ```toml
 [dependencies]
 ferrous-opencc = "*"
-````
+```
 
 ### 目录结构
 
@@ -68,16 +68,12 @@ fn main() -> Result<()> {
 
 ## 命令行工具
 
-本库提供了一个词典编译工具。你可以通过启用 `compiler-tools` 特性来安装它。
+本库提供了一个词典编译工具，可以将文本词典编译成二进制的 `.ocb` 格式。
+
+你可以通过 Cargo 直接运行这个二进制目标。
 
 ```bash
-cargo install ferrous-opencc --features compiler-tools
-```
-
-然后，你就可以将文本词典编译成二进制的 `.ocb` 格式：
-
-```bash
-opencc-dict-compiler /path/to/STCharacters.txt
+cargo run --bin opencc-dict-compiler -- assets/dictionaries/STCharacters.txt
 ```
 
 这会在相同目录下生成 `STCharacters.ocb` 文件。程序库会自动将这些 `.ocb` 文件作为缓存使用，从而加速程序的初次加载。

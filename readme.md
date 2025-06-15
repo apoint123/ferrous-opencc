@@ -68,16 +68,12 @@ fn main() -> Result<()> {
 
 ## Command-Line Tool
 
-This library provides a dictionary compilation tool. You can install it by enabling the `compiler-tools` feature.
+This library provides a dictionary compilation tool that can compile text dictionaries into binary `.ocb` format.
+
+You can run this binary target directly through Cargo.
 
 ```bash
-cargo install ferrous-opencc --features compiler-tools
-```
-
-Then, you can compile text dictionaries into the binary `.ocb` format:
-
-```bash
-opencc-dict-compiler /path/to/STCharacters.txt
+cargo run --bin opencc-dict-compiler -- assets/dictionaries/STCharacters.txt
 ```
 
 This will generate an `STCharacters.ocb` file in the same directory. The library will automatically use these `.ocb` files as a cache to speed up initial loading.
