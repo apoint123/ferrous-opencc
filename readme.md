@@ -68,19 +68,92 @@ fn main() -> Result<()> {
 
 ## Command-Line Tool
 
-This library provides a dictionary compilation tool. You can install it by enabling the `compiler-tools` feature.
+This library provides a dictionary compilation tool that can compile text dictionaries into binary `.ocb` format.
+
+You can run this binary target directly through Cargo.
 
 ```bash
-cargo install ferrous-opencc --features compiler-tools
+cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.txt --output ./STPhrases.ocb
 ```
 
-Then, you can compile text dictionaries into the binary `.ocb` format:
+This will generate an `STCharacters.ocb` file in the same directory. 
 
-```bash
-opencc-dict-compiler /path/to/STCharacters.txt
+## Using Custom Dictionaries
+
+While this library comes with all standard dictionaries embedded, you might need to load your own dictionary files in certain scenarios. For instance, you may have just compiled an `.ocb` file using the `opencc-dict-compiler` tool, or you might want to load dictionaries dynamically at runtime.
+
+This requires you to create a conversion configuration manually, rather than relying on the built-in configurations.
+
+### How It Works
+
+1.  **Write a Custom Config File**: Create a `my_config.json` file to define your conversion pipeline. This config file must explicitly specify the paths to your dictionary files.
+2.  **Load the Config File**: In your Rust code, use `ferrous_opencc::Config` to load this JSON file.
+3.  **Create the Converter**: Instantiate the `OpenCC` converter using the loaded `Config` object.
+
+### Example
+
+Let's assume you have generated `my_dicts/my_s2t_phrases.ocb` and `my_dicts/my_s2t_chars.ocb` using the compiler tool.
+
+#### 1. Create `my_config.json`
+
+Create a file named `my_config.json` in your project's root directory with the following content:
+
+```json
+{
+  "name": "My-Simplified-to-Traditional-Conversion",
+  "segmentation": {
+    "type": "mm",
+    "dict": {
+      "type": "ocd2",
+      "file": "my_dicts/my_s2t_phrases.ocb"
+    }
+  },
+  "conversion_chain": [
+    {
+      "dict": {
+        "type": "ocd2",
+        "file": "my_dicts/my_s2t_phrases.ocb"
+      }
+    },
+    {
+      "dict": {
+        "type": "ocd2",
+        "file": "my_dicts/my_s2t_chars.ocb"
+      }
+    }
+  ]
+}
 ```
+**Note**:
+- Use `"type": "ocd2"` to inform the library that this is a binary dictionary file. Although our extension is `.ocb`, its format is compatible with OpenCC v2's `.ocd2`.
+- The path in the `file` field is **relative to the current working directory** where your executable is run.
 
-This will generate an `STCharacters.ocb` file in the same directory. The library will automatically use these `.ocb` files as a cache to speed up initial loading.
+#### 2. Load the Config in Rust
+
+Now, you can write Rust code to load and use this configuration file.
+
+```rust
+use ferrous_opencc::{Config, OpenCC};
+use std::path::Path;
+
+fn main() -> anyhow::Result<()> {
+    // 1. Load the custom configuration from a file
+    let config_path = Path::new("my_config.json");
+    let config = Config::from_file(config_path)?;
+
+    // 2. Create a converter using the loaded config
+    let converter = OpenCC::from_config(config)?;
+
+    // 3. Perform the conversion
+    let text = "我用路由器上网";
+    let converted_text = converter.convert(text);
+    
+    println!("'{}' -> '{}'", text, converted_text);
+    // Expected output: '我用路由器上网' -> '我用路由器上網'
+
+    Ok(())
+}
+```
 
 ## License
 

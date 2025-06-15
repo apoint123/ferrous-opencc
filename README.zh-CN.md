@@ -22,7 +22,7 @@
 ```toml
 [dependencies]
 ferrous-opencc = "*"
-````
+```
 
 ### 目录结构
 
@@ -68,19 +68,94 @@ fn main() -> Result<()> {
 
 ## 命令行工具
 
-本库提供了一个词典编译工具。你可以通过启用 `compiler-tools` 特性来安装它。
+本库提供了一个词典编译工具，可以将文本词典编译成二进制的 `.ocb` 格式。
+
+你可以通过 Cargo 直接运行这个二进制目标。
 
 ```bash
-cargo install ferrous-opencc --features compiler-tools
+cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.txt --output ./STPhrases.ocb
 ```
 
-然后，你就可以将文本词典编译成二进制的 `.ocb` 格式：
+这会在相同目录下生成 `STCharacters.ocb` 文件。
 
-```bash
-opencc-dict-compiler /path/to/STCharacters.txt
+## 使用自定义词典
+
+虽然本库内置了所有标准词典，但在某些场景下，你可能需要加载自己的词典文件。例如，你可能刚刚使用 `opencc-dict-compiler` 工具编译了一个 `.ocb` 文件，或者你想在运行时动态加载词典。
+
+这需要你手动创建转换配置，而不是依赖内置的配置。
+
+### 实现步骤
+
+1.  **编写自定义配置文件**: 创建一个 `my_config.json` 文件来定义你的转换流程。这个配置文件需要明确指定词典文件的路径。
+2.  **加载配置文件**: 在你的 Rust 代码中，使用 `ferrous_opencc::Config` 来加载这个 JSON 文件。
+3.  **创建转换器**: 使用加载的 `Config` 对象来实例化 `OpenCC` 转换器。
+
+### 示例
+
+假设你已经通过编译工具生成了 `my_dicts/my_s2t_phrases.ocb` 和 `my_dicts/my_s2t_chars.ocb` 这两个自定义词典。
+
+#### 1. 创建 `my_config.json`
+
+在你的项目根目录下创建一个名为 `my_config.json` 的文件，内容如下：
+
+```json
+{
+  "name": "My-Simplified-to-Traditional-Conversion",
+  "segmentation": {
+    "type": "mm",
+    "dict": {
+      "type": "ocd2",
+      "file": "my_dicts/my_s2t_phrases.ocb"
+    }
+  },
+  "conversion_chain": [
+    {
+      "dict": {
+        "type": "ocd2",
+        "file": "my_dicts/my_s2t_phrases.ocb"
+      }
+    },
+    {
+      "dict": {
+        "type": "ocd2",
+        "file": "my_dicts/my_s2t_chars.ocb"
+      }
+    }
+  ]
+}
+```
+**注意**:
+- 使用 `"type": "ocd2"` 来告诉库这是一个二进制词典文件。虽然扩展名是 `.ocb`，但它的格式与 OpenCC v2 的 `.ocd2` 兼容。
+- `file` 字段中的路径是**相对于你的可执行文件运行时的当前工作目录**。
+
+#### 2. 在 Rust 代码中加载配置
+
+现在，你可以编写 Rust 代码来加载并使用这个配置文件。
+
+```rust
+use ferrous_opencc::{Config, OpenCC};
+use std::path::Path;
+
+fn main() -> anyhow::Result<()> {
+    // 1. 从文件加载自定义配置
+    let config_path = Path::new("my_config.json");
+    let config = Config::from_file(config_path)?;
+
+    // 2. 使用加载的配置来创建转换器
+    let converter = OpenCC::from_config(config)?;
+
+    // 3. 执行转换
+    let text = "我用路由器上网";
+    let converted_text = converter.convert(text);
+    
+    println!("'{}' -> '{}'", text, converted_text);
+    // 预期输出: '我用路由器上网' -> '我用路由器上網'
+
+    Ok(())
+}
+
 ```
 
-这会在相同目录下生成 `STCharacters.ocb` 文件。程序库会自动将这些 `.ocb` 文件作为缓存使用，从而加速程序的初次加载。
 
 ## 开源协议
 
