@@ -3,6 +3,7 @@ use serde::Deserialize;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 /// 顶层的 JSON 配置结构
 #[derive(Deserialize, Debug)]
@@ -67,5 +68,14 @@ impl Config {
     /// 获取配置文件所在的目录
     pub fn get_config_directory(&self) -> &Path {
         &self.config_directory
+    }
+}
+
+impl FromStr for Config {
+    type Err = OpenCCError;
+
+    fn from_str(s: &str) -> Result<Self> {
+        let config: Config = serde_json::from_str(s)?;
+        Ok(config)
     }
 }

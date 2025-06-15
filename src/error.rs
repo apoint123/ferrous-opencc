@@ -27,6 +27,10 @@ pub enum OpenCCError {
     #[error("Invalid configuration format: {0}")]
     InvalidConfig(String),
 
+    /// 在嵌入式资源中找不到指定的配置或词典
+    #[error("Configuration or resource not found in embedded data: {0}")]
+    ConfigNotFound(String),
+
     /// 找不到所需的文件
     #[error("File not found: {0}")]
     FileNotFound(String),

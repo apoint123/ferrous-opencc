@@ -4,7 +4,7 @@ pub mod dict_group;
 pub mod fst_dict;
 
 #[cfg(feature = "embed-dictionaries")]
-mod embedded {
+pub mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 }
 
@@ -37,24 +37,13 @@ pub enum DictType {
 }
 
 impl DictType {
-    /// 从一个配置对象创建新的词典（或词典组）
+    /// 从文件加载字典
     pub fn from_config(config: &DictConfig, config_dir: &Path) -> Result<Arc<dyn Dictionary>> {
         match config.dict_type.as_str() {
             "text" | "ocd2" => {
                 let file_name = config.file.as_ref().ok_or_else(|| {
                     OpenCCError::InvalidConfig("'file' not found for 'text' dict".to_string())
                 })?;
-
-                // 尝试从嵌入的资源加载
-                #[cfg(feature = "embed-dictionaries")]
-                {
-                    if let Some(dict_bytes) = embedded::EMBEDDED_DICTS.get(file_name) {
-                        let dict = FstDict::from_ocb_bytes(dict_bytes)?;
-                        return Ok(Arc::new(dict));
-                    }
-                }
-
-                // 失败或未启用特性，则从文件加载
                 let dict_path = find_dict_path(file_name, config_dir)?;
                 let dict = FstDict::new(&dict_path)?;
                 Ok(Arc::new(dict))
@@ -67,6 +56,39 @@ impl DictType {
                 for dict_config in dict_configs {
                     // 递归调用 from_config 来构建子词典
                     dicts.push(Self::from_config(dict_config, config_dir)?);
+                }
+                let dict_group = DictGroup::new(dicts);
+                Ok(Arc::new(dict_group))
+            }
+            _ => Err(OpenCCError::UnsupportedDictType(config.dict_type.clone())),
+        }
+    }
+
+    /// 从嵌入的资源加载字典
+    #[cfg(feature = "embed-dictionaries")]
+    pub fn from_config_embedded(config: &DictConfig) -> Result<Arc<dyn Dictionary>> {
+        match config.dict_type.as_str() {
+            "text" | "ocd2" => {
+                let file_name = config.file.as_ref().ok_or_else(|| {
+                    OpenCCError::InvalidConfig("'file' not found for 'text' dict".to_string())
+                })?;
+
+                // 只在嵌入式 map 中查找
+                let dict_bytes = embedded::EMBEDDED_DICTS
+                    .get(file_name)
+                    .ok_or_else(|| OpenCCError::ConfigNotFound(file_name.to_string()))?;
+
+                let dict = FstDict::from_ocb_bytes(dict_bytes)?;
+                Ok(Arc::new(dict))
+            }
+            "group" => {
+                let dict_configs = config.dicts.as_ref().ok_or_else(|| {
+                    OpenCCError::InvalidConfig("'dicts' not found for 'group' dict".to_string())
+                })?;
+                let mut dicts = Vec::new();
+                for dict_config in dict_configs {
+                    // 递归调用嵌入式方法
+                    dicts.push(Self::from_config_embedded(dict_config)?);
                 }
                 let dict_group = DictGroup::new(dicts);
                 Ok(Arc::new(dict_group))

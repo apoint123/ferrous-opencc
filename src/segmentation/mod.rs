@@ -19,11 +19,26 @@ pub enum SegmentationType {
 }
 
 impl SegmentationType {
-    /// 从配置中创建分词器类型
+    /// 从文件加载配置来创建分词器类型
     pub fn from_config(config: &SegmentationConfig, config_dir: &Path) -> Result<Self> {
         match config.seg_type.as_str() {
             "mm" | "mmseg" => {
                 let dict = DictType::from_config(&config.dict, config_dir)?;
+                Ok(SegmentationType::MaxMatch(dict))
+            }
+            _ => Err(OpenCCError::InvalidConfig(format!(
+                "Unsupported segmentation type: {}",
+                config.seg_type
+            ))),
+        }
+    }
+
+    /// 从嵌入式资源加载配置来创建分词器类型
+    #[cfg(feature = "embed-dictionaries")]
+    pub fn from_config_embedded(config: &SegmentationConfig) -> Result<Self> {
+        match config.seg_type.as_str() {
+            "mm" | "mmseg" => {
+                let dict = DictType::from_config_embedded(&config.dict)?;
                 Ok(SegmentationType::MaxMatch(dict))
             }
             _ => Err(OpenCCError::InvalidConfig(format!(

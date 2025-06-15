@@ -14,13 +14,23 @@ pub struct ConversionChain {
 }
 
 impl ConversionChain {
-    /// 从配置节点切片创建一个新的转换链
+    /// 从文件加载配置来创建一个新的转换链
     pub fn from_config(config: &[ConversionNodeConfig], config_dir: &Path) -> Result<Self> {
-        let mut dictionaries = Vec::new();
-        for node_config in config {
-            let dict = DictType::from_config(&node_config.dict, config_dir)?;
-            dictionaries.push(dict);
-        }
+        let dictionaries = config
+            .iter()
+            .map(|node| DictType::from_config(&node.dict, config_dir))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self { dictionaries })
+    }
+
+    /// 从嵌入式资源加载配置来创建一个新的转换链
+    #[cfg(feature = "embed-dictionaries")]
+    pub fn from_config_embedded(config: &[ConversionNodeConfig]) -> Result<Self> {
+        let dictionaries = config
+            .iter()
+            // 调用 DictType 即将创建的嵌入式构造函数
+            .map(|node| DictType::from_config_embedded(&node.dict))
+            .collect::<Result<Vec<_>>>()?;
         Ok(Self { dictionaries })
     }
 

@@ -33,6 +33,9 @@ use error::Result;
 use segmentation::{Segmentation, SegmentationType};
 use std::path::Path;
 
+#[cfg(feature = "embed-dictionaries")]
+include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
+
 /// 核心的 OpenCC 转换器
 pub struct OpenCC {
     /// 配置名称
@@ -64,6 +67,29 @@ impl OpenCC {
 
         // 3. 初始化转换链
         let conversion_chain = ConversionChain::from_config(&config.conversion_chain, config_dir)?;
+
+        Ok(Self {
+            name: config.name,
+            segmentation: segmentation.into_segmenter(),
+            conversion_chain,
+        })
+    }
+
+    // 从嵌入的资源创建 OpenCC 实例
+    #[cfg(feature = "embed-dictionaries")]
+    pub fn from_config_name(name: &str) -> Result<Self> {
+        use crate::dictionary::embedded;
+
+        let config_str = embedded::EMBEDDED_CONFIGS
+            .get(name)
+            .ok_or_else(|| error::OpenCCError::ConfigNotFound(name.to_string()))?;
+
+        // 从字符串解析配置
+        let config: Config = config_str.parse()?;
+
+        // 初始化分词器和转换链，并告诉它们使用嵌入式词典
+        let segmentation = SegmentationType::from_config_embedded(&config.segmentation)?;
+        let conversion_chain = ConversionChain::from_config_embedded(&config.conversion_chain)?;
 
         Ok(Self {
             name: config.name,

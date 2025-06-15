@@ -72,6 +72,22 @@ fn run() -> Result<()> {
         }
     }
 
+    let mut config_map_builder = phf_codegen::Map::new();
+    let config_source_dir = PathBuf::from("assets/dictionaries");
+
+    if config_source_dir.exists() {
+        println!("cargo:rerun-if-changed=assets/configs/");
+        for entry in fs::read_dir(&config_source_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
+                let file_name = entry.file_name().to_str().unwrap().to_string();
+                let content = fs::read_to_string(&path)?;
+                config_map_builder.entry(file_name, &format!("r#\"{content}\"#"));
+            }
+        }
+    }
+
     let generated_map_path = dest_path.join("embedded_map.rs");
     let mut file = BufWriter::new(File::create(&generated_map_path).with_context(|| {
         format!(
@@ -88,6 +104,12 @@ fn run() -> Result<()> {
         &mut file,
         "pub static EMBEDDED_DICTS: phf::Map<&'static str, &'static [u8]> = {};",
         map_builder.build()
+    )?;
+
+    writeln!(
+        &mut file,
+        "pub static EMBEDDED_CONFIGS: phf::Map<&'static str, &'static str> = {};",
+        config_map_builder.build()
     )?;
 
     Ok(())
