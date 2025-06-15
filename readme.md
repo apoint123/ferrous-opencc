@@ -82,16 +82,6 @@ opencc-dict-compiler /path/to/STCharacters.txt
 
 This will generate an `STCharacters.ocb` file in the same directory. The library will automatically use these `.ocb` files as a cache to speed up initial loading.
 
-## Cargo Features
-
--   `compiler-tools`: Enables the `opencc-dict-compiler` binary.
--   `embed-dictionaries`: Compiles and embeds all dictionaries from the `assets/dictionaries` directory into the binary at compile time. This creates a completely self-contained executable that does not depend on any external files.
-    To use this feature, add the following to your `Cargo.toml`:
-    ```toml
-    [dependencies]
-    ferrous-opencc = { version = "*", features = ["embed-dictionaries"] }
-    ```
-
 ## License
 
 This project is licensed under the [Apache-2.0 license](LICENSE).

@@ -16,102 +16,70 @@ include!("compiler_logic.rs");
 fn run() -> Result<()> {
     let out_dir = env::var("OUT_DIR").context("Failed to get OUT_DIR environment variable")?;
     let dest_path = Path::new(&out_dir);
-    let mut map_builder = phf_codegen::Map::new();
+    let mut dict_map_builder = phf_codegen::Map::new();
+    let mut config_map_builder = phf_codegen::Map::new();
 
-    if env::var("CARGO_CFG_FEATURE_EMBED_DICTIONARIES").is_ok() {
-        println!("cargo:rerun-if-changed=assets/dictionaries/");
 
-        let dict_source_dir = PathBuf::from("assets/dictionaries");
+    let dict_source_dir = PathBuf::from("assets/dictionaries");
+    if dict_source_dir.exists() {
+        let entries = fs::read_dir(&dict_source_dir)?;
+        for entry in entries {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
+                let file_stem = path.file_stem().unwrap().to_str().unwrap();
+                let ocd2_key_name = format!("{}.ocd2", file_stem);
+                let ocb_file_name = format!("{}.ocb", file_stem);
+                let ocb_path = dest_path.join(&ocb_file_name);
+                let ocb_bytes = compile_dictionary(&path)?;
+                fs::write(&ocb_path, ocb_bytes)?;
+                let ocb_path_str = ocb_path.to_str().unwrap();
 
-        if dict_source_dir.exists() {
-            let entries = fs::read_dir(&dict_source_dir).with_context(|| {
-                format!(
-                    "Failed to read dictionary directory: {}",
-                    dict_source_dir.display()
-                )
-            })?;
-
-            for entry in entries {
-                let entry = entry.context("Error reading directory entry")?;
-                let path = entry.path();
-
-                if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
-                    let file_name = entry.file_name();
-                    let file_name_str = file_name.to_str().with_context(|| {
-                        format!(
-                            "Dictionary filename {file_name:?} contains invalid UTF-8 characters"
-                        )
-                    })?;
-
-                    let file_stem = path
-                        .file_stem()
-                        .with_context(|| format!("Failed to get file stem for {path:?}"))?
-                        .to_str()
-                        .with_context(|| format!("Dictionary file stem for {path:?} contains invalid UTF-8 characters"))?;
-
-                    let ocb_file_name = format!("{file_stem}.ocb");
-                    let ocb_path = dest_path.join(&ocb_file_name);
-
-                    let ocb_bytes = compile_dictionary(&path)
-                        .with_context(|| format!("Failed to compile dictionary {path:?}"))?;
-                    fs::write(&ocb_path, ocb_bytes).with_context(|| {
-                        format!(
-                            "Failed to write compiled dictionary to: {}",
-                            ocb_path.display()
-                        )
-                    })?;
-
-                    let ocb_path_str = ocb_path.to_str().with_context(|| {
-                        format!("Path {ocb_path:?} contains invalid UTF-8 characters")
-                    })?;
-
-                    let value_code = format!("&include_bytes!(r\"{ocb_path_str}\")[..]");
-                    map_builder.entry(file_name_str.to_string(), &value_code);
-                }
+                let value_code = format!("include_bytes!(r\"{}\")", ocb_path_str);
+                dict_map_builder.entry(ocd2_key_name.clone(), &value_code);
             }
         }
     }
 
-    let mut config_map_builder = phf_codegen::Map::new();
     let config_source_dir = PathBuf::from("assets/dictionaries");
-
+    let mut configs_to_add: Vec<(String, String)> = Vec::new();
     if config_source_dir.exists() {
-        println!("cargo:rerun-if-changed=assets/configs/");
-        for entry in fs::read_dir(&config_source_dir)? {
+        let entries = fs::read_dir(&config_source_dir)?;
+        for entry in entries {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
-                let file_name = entry.file_name().to_str().unwrap().to_string();
+                let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
                 let content = fs::read_to_string(&path)?;
-                config_map_builder.entry(file_name, &format!("r#\"{content}\"#"));
+                configs_to_add.push((file_name, content));
             }
         }
     }
+    
+    let formatted_config_values: Vec<String> = configs_to_add
+        .iter()
+        .map(|(_, content)| format!("r#\"{}\"#" , content.trim()))
+        .collect();
+    
+    for (i, (file_name, _)) in configs_to_add.iter().enumerate() {
+        config_map_builder.entry(file_name.clone(), &formatted_config_values[i]);
+    }
 
     let generated_map_path = dest_path.join("embedded_map.rs");
-    let mut file = BufWriter::new(File::create(&generated_map_path).with_context(|| {
-        format!(
-            "Failed to create generated map file: {}",
-            generated_map_path.display()
-        )
-    })?);
+    let mut file = BufWriter::new(File::create(&generated_map_path)?);
 
-    writeln!(
-        &mut file,
-        "// @generated - This file is automatically generated by build.rs. Do not edit it manually.\n"
-    )?;
+    writeln!(&mut file, "// @generated - This file is automatically generated by build.rs.")?;
     writeln!(
         &mut file,
         "pub static EMBEDDED_DICTS: phf::Map<&'static str, &'static [u8]> = {};",
-        map_builder.build()
+        dict_map_builder.build()
     )?;
-
     writeln!(
         &mut file,
         "pub static EMBEDDED_CONFIGS: phf::Map<&'static str, &'static str> = {};",
         config_map_builder.build()
     )?;
-
+    
     Ok(())
 }
 

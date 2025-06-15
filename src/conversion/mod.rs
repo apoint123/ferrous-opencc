@@ -24,7 +24,6 @@ impl ConversionChain {
     }
 
     /// 从嵌入式资源加载配置来创建一个新的转换链
-    #[cfg(feature = "embed-dictionaries")]
     pub fn from_config_embedded(config: &[ConversionNodeConfig]) -> Result<Self> {
         let dictionaries = config
             .iter()

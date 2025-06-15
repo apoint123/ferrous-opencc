@@ -3,7 +3,6 @@
 pub mod dict_group;
 pub mod fst_dict;
 
-#[cfg(feature = "embed-dictionaries")]
 pub mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 }
@@ -65,7 +64,6 @@ impl DictType {
     }
 
     /// 从嵌入的资源加载字典
-    #[cfg(feature = "embed-dictionaries")]
     pub fn from_config_embedded(config: &DictConfig) -> Result<Arc<dyn Dictionary>> {
         match config.dict_type.as_str() {
             "text" | "ocd2" => {

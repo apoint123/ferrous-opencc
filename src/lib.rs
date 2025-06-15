@@ -33,7 +33,6 @@ use error::Result;
 use segmentation::{Segmentation, SegmentationType};
 use std::path::Path;
 
-#[cfg(feature = "embed-dictionaries")]
 include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 
 /// 核心的 OpenCC 转换器
@@ -76,7 +75,6 @@ impl OpenCC {
     }
 
     // 从嵌入的资源创建 OpenCC 实例
-    #[cfg(feature = "embed-dictionaries")]
     pub fn from_config_name(name: &str) -> Result<Self> {
         use crate::dictionary::embedded;
 

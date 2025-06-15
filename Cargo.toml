@@ -18,8 +18,8 @@ serde_json = "1"
 tempfile = "3"
 thiserror = "2"
 anyhow = "1"
-clap = { version = "4", features = ["derive"], optional = true }
-phf = { version = "0", features = ["macros"], optional = true }
+clap = { version = "4", features = ["derive"] }
+phf = { version = "0", features = ["macros"] }
 
 [lib]
 path = "src/lib.rs"
@@ -31,7 +31,7 @@ required-features = ["compiler-tools"]
 
 [dev-dependencies]
 tempfile = "3"
-ferrous-opencc = { path = ".", features = ["embed-dictionaries", "compiler-tools"] }
+ferrous-opencc = { path = "." }
 
 [build-dependencies]
 anyhow = "1"
@@ -39,8 +39,3 @@ bincode = "2"
 fst = "0"
 phf = { version = "0", features = ["macros"] }
 phf_codegen = "0"
-
-[features]
-default = []
-compiler-tools = ["dep:clap"] 
-embed-dictionaries = ["dep:phf"]

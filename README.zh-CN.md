@@ -82,16 +82,6 @@ opencc-dict-compiler /path/to/STCharacters.txt
 
 这会在相同目录下生成 `STCharacters.ocb` 文件。程序库会自动将这些 `.ocb` 文件作为缓存使用，从而加速程序的初次加载。
 
-## Cargo 特性
-
-  - `compiler-tools`: 启用 `opencc-dict-compiler` 二进制工具。
-  - `embed-dictionaries`: 在编译时将 `assets/dictionaries` 目录下的所有词典直接编译并嵌入到程序中。这会创建一个完全自包含的可执行文件，不依赖任何外部文件。
-    若要使用，请将以下代码添加到 `Cargo.toml`:
-    ```toml
-    [dependencies]
-    ferrous-opencc = { version = "*", features = ["embed-dictionaries"] }
-    ```
-
 ## 开源协议
 
 本项目使用 [Apache-2.0 license](LICENSE) 开源协议。

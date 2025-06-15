@@ -34,7 +34,6 @@ impl SegmentationType {
     }
 
     /// 从嵌入式资源加载配置来创建分词器类型
-    #[cfg(feature = "embed-dictionaries")]
     pub fn from_config_embedded(config: &SegmentationConfig) -> Result<Self> {
         match config.seg_type.as_str() {
             "mm" | "mmseg" => {
