@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-opencc"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 authors = ["apoint123 <vpnzaph@outlook.com>"]
 description = "A pure Rust implementation of Open Chinese Convert (OpenCC), for fast and reliable conversion between Traditional and Simplified Chinese."
@@ -27,7 +27,6 @@ path = "src/lib.rs"
 [[bin]]
 name = "opencc-dict-compiler"
 path = "src/bin/dict-compiler.rs"
-required-features = ["compiler-tools"]
 
 [dev-dependencies]
 tempfile = "3"
