@@ -37,7 +37,7 @@ fn run() -> Result<()> {
                 let ocb_path_str = ocb_path.to_str().unwrap();
 
                 let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
-                
+
                 dicts_to_add.push((ocd2_key_name, value_code));
             }
         }
@@ -46,7 +46,6 @@ fn run() -> Result<()> {
     for (key, value) in &dicts_to_add {
         dict_map_builder.entry(key.clone(), value);
     }
-
 
     let config_source_dir = PathBuf::from("assets/dictionaries");
     let mut configs_to_add: Vec<(String, String)> = Vec::new();
