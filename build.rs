@@ -19,6 +19,8 @@ fn run() -> Result<()> {
     let mut dict_map_builder = phf_codegen::Map::new();
     let mut config_map_builder = phf_codegen::Map::new();
 
+    let mut dicts_to_add: Vec<(String, String)> = Vec::new();
+
     let dict_source_dir = PathBuf::from("assets/dictionaries");
     if dict_source_dir.exists() {
         let entries = fs::read_dir(&dict_source_dir)?;
@@ -35,10 +37,16 @@ fn run() -> Result<()> {
                 let ocb_path_str = ocb_path.to_str().unwrap();
 
                 let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
-                dict_map_builder.entry(ocd2_key_name.clone(), &value_code);
+                
+                dicts_to_add.push((ocd2_key_name, value_code));
             }
         }
     }
+
+    for (key, value) in &dicts_to_add {
+        dict_map_builder.entry(key.clone(), value);
+    }
+
 
     let config_source_dir = PathBuf::from("assets/dictionaries");
     let mut configs_to_add: Vec<(String, String)> = Vec::new();
