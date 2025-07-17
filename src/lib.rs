@@ -25,12 +25,10 @@ pub mod config;
 pub mod conversion;
 pub mod dictionary;
 pub mod error;
-pub mod segmentation;
 
 use config::Config;
 use conversion::ConversionChain;
 use error::Result;
-use segmentation::{Segmentation, SegmentationType};
 use std::path::Path;
 
 include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
@@ -39,8 +37,6 @@ include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 pub struct OpenCC {
     /// 配置名称
     name: String,
-    /// 分词器
-    segmentation: Box<dyn Segmentation>,
     /// 用于执行转换的词典链
     conversion_chain: ConversionChain,
 }
@@ -61,15 +57,11 @@ impl OpenCC {
         let config = Config::from_file(config_path)?;
         let config_dir = config.get_config_directory();
 
-        // 2. 初始化分词器
-        let segmentation = SegmentationType::from_config(&config.segmentation, config_dir)?;
-
-        // 3. 初始化转换链
+        // 2. 初始化转换链
         let conversion_chain = ConversionChain::from_config(&config.conversion_chain, config_dir)?;
 
         Ok(Self {
             name: config.name,
-            segmentation: segmentation.into_segmenter(),
             conversion_chain,
         })
     }
@@ -85,13 +77,10 @@ impl OpenCC {
         // 从字符串解析配置
         let config: Config = config_str.parse()?;
 
-        // 初始化分词器和转换链，并告诉它们使用嵌入式词典
-        let segmentation = SegmentationType::from_config_embedded(&config.segmentation)?;
         let conversion_chain = ConversionChain::from_config_embedded(&config.conversion_chain)?;
 
         Ok(Self {
             name: config.name,
-            segmentation: segmentation.into_segmenter(),
             conversion_chain,
         })
     }
@@ -106,10 +95,7 @@ impl OpenCC {
     ///
     /// 转换后的字符串
     pub fn convert(&self, input: &str) -> String {
-        // 1. 使用分词器进行分词
-        let segments = self.segmentation.segment(input);
-        // 2. 使用转换链进行转换
-        self.conversion_chain.convert(&segments)
+        self.conversion_chain.convert(input)
     }
 
     /// 返回当前加载的配置名称

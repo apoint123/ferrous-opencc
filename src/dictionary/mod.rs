@@ -73,7 +73,7 @@ impl DictType {
 
                 // 只在嵌入式 map 中查找
                 let dict_bytes = embedded::EMBEDDED_DICTS
-                    .get(file_name)
+                    .get(file_name.as_str())
                     .ok_or_else(|| OpenCCError::ConfigNotFound(file_name.to_string()))?;
 
                 let dict = FstDict::from_ocb_bytes(dict_bytes)?;

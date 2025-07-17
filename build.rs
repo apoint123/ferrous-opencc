@@ -16,15 +16,17 @@ include!("compiler_logic.rs");
 fn run() -> Result<()> {
     let out_dir = env::var("OUT_DIR").context("Failed to get OUT_DIR environment variable")?;
     let dest_path = Path::new(&out_dir);
-    let mut dict_map_builder = phf_codegen::Map::new();
-    let mut config_map_builder = phf_codegen::Map::new();
+    let manifest_dir = PathBuf::from(
+        env::var("CARGO_MANIFEST_DIR").context("Failed to get CARGO_MANIFEST_DIR env variable")?,
+    );
 
+    let assets_dir = manifest_dir.join("assets").join("dictionaries");
+
+    let mut dict_map_builder = phf_codegen::Map::<&str>::new();
     let mut dicts_to_add: Vec<(String, String)> = Vec::new();
 
-    let dict_source_dir = PathBuf::from("assets/dictionaries");
-    if dict_source_dir.exists() {
-        let entries = fs::read_dir(&dict_source_dir)?;
-        for entry in entries {
+    if assets_dir.exists() {
+        for entry in fs::read_dir(&assets_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
@@ -34,7 +36,7 @@ fn run() -> Result<()> {
                 let ocb_path = dest_path.join(&ocb_file_name);
                 let ocb_bytes = compile_dictionary(&path)?;
                 fs::write(&ocb_path, ocb_bytes)?;
-                let ocb_path_str = ocb_path.to_str().unwrap();
+                let ocb_path_str = ocb_path.to_str().unwrap().replace('\\', "/");
 
                 let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
 
@@ -44,14 +46,14 @@ fn run() -> Result<()> {
     }
 
     for (key, value) in &dicts_to_add {
-        dict_map_builder.entry(key.clone(), value);
+        dict_map_builder.entry(key, value);
     }
 
-    let config_source_dir = PathBuf::from("assets/dictionaries");
+    let mut config_map_builder = phf_codegen::Map::<&str>::new();
     let mut configs_to_add: Vec<(String, String)> = Vec::new();
-    if config_source_dir.exists() {
-        let entries = fs::read_dir(&config_source_dir)?;
-        for entry in entries {
+
+    if assets_dir.exists() {
+        for entry in fs::read_dir(&assets_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
@@ -68,7 +70,7 @@ fn run() -> Result<()> {
         .collect();
 
     for (i, (file_name, _)) in configs_to_add.iter().enumerate() {
-        config_map_builder.entry(file_name.clone(), &formatted_config_values[i]);
+        config_map_builder.entry(file_name, &formatted_config_values[i]);
     }
 
     let generated_map_path = dest_path.join("embedded_map.rs");

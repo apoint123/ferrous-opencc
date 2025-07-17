@@ -35,24 +35,15 @@ impl ConversionChain {
 
     /// 对分词后的片段执行转换。
     /// 每个文本片段都会经过整个词典转换链的处理。
-    pub fn convert(&self, segments: &[&str]) -> String {
-        // 预先为最终结果分配一个 String 缓冲区以提升性能
-        let total_len: usize = segments.iter().map(|s| s.len()).sum();
-        let mut final_result = String::with_capacity(total_len);
+    pub fn convert(&self, text: &str) -> String {
+        let mut current_cow = Cow::Borrowed(text);
 
-        for segment in segments {
-            // 对每个片段，从一个借用的 Cow<'a, str> 开始
-            let mut current_cow = Cow::Borrowed(*segment);
-
-            // 将 Cow 传递给转换链中的每个词典
-            for dict in &self.dictionaries {
-                current_cow = self.apply_dict(current_cow, dict.as_ref());
-            }
-
-            // 将最终结果追加到主缓冲区中
-            final_result.push_str(&current_cow);
+        // 将 Cow 传递给转换链中的每个词典
+        for dict in &self.dictionaries {
+            current_cow = self.apply_dict(current_cow, dict.as_ref());
         }
-        final_result
+
+        current_cow.into_owned()
     }
 
     /// 使用单个词典，通过贪婪替换策略对文本进行一次完整的转换
@@ -172,9 +163,10 @@ mod tests {
             dictionaries: vec![dict1_arc, dict2_arc],
         };
 
-        let segments = vec!["一个", "项目"];
+        let text_to_convert = "一个项目";
 
-        let result = chain.convert(&segments);
+        let result = chain.convert(text_to_convert);
+
         // "一个" -> "一個" (dict1) -> "一個" (dict2)
         // "项目" -> "項目" (dict1) -> "專案" (dict2)
         assert_eq!(result, "一個專案");
