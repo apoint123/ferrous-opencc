@@ -25,6 +25,7 @@ pub mod config;
 pub mod conversion;
 pub mod dictionary;
 pub mod error;
+pub mod ffi;
 
 use config::Config;
 use conversion::ConversionChain;

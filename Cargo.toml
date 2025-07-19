@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-opencc"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 authors = ["apoint123 <vpnzaph@outlook.com>"]
 description = "A pure Rust implementation of Open Chinese Convert (OpenCC), for fast and reliable conversion between Traditional and Simplified Chinese."
@@ -22,7 +22,8 @@ clap = { version = "4", features = ["derive"] }
 phf = { version = "0", features = ["macros"] }
 
 [lib]
-path = "src/lib.rs"
+name = "ferrous_opencc"
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "opencc-dict-compiler"
