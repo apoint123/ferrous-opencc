@@ -21,12 +21,12 @@
 
 ```toml
 [dependencies]
-ferrous-opencc = "*"
+ferrous-opencc = "0.2"
 ```
 
 ### 目录结构
 
-本库会从本地加载词典和配置文件。你可以使用我准备好的全套字典文件，或自行编译并放入 `assets/dictionaries/` 文件夹。
+本库会从本地加载词典和配置文件。你可以使用本库附带的全套字典文件，或自行编译并放入 `assets/dictionaries/` 文件夹。
 
 ```
 你的项目/
@@ -45,23 +45,68 @@ ferrous-opencc = "*"
 
 ## 示例
 
-一个将简体中文转换为繁体中文的基础示例
+### 方法一：通过配置名初始化（推荐）
+
+使用内置的配置名创建 OpenCC 实例，无需外部文件：
+
+```rust
+use ferrous_opencc::{OpenCC, Result};
+
+fn main() -> Result<()> {
+    // 使用内置配置名创建 OpenCC 实例
+    let opencc = OpenCC::from_config_name("s2t.json")?;
+
+    // 转换文本
+    let text = "开放中文转换是完全由 Rust 实现的。";
+    let converted = opencc.convert(text);
+
+    println!("{}", converted);
+    // 预期输出: 開放中文轉換是完全由 Rust 實現的。
+
+    assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
+    Ok(())
+}
+```
+
+**支持的内置配置名：**
+| 配置文件 | 转换方向 |
+| :--- | :--- |
+| `s2t.json` | **简体 → 繁体** |
+| `t2s.json` | **繁体 → 简体** |
+| `s2tw.json` | 简体 → 台湾正体 | 
+| `tw2s.json` | 台湾正体 → 简体 | 
+| `s2hk.json` | 简体 → 香港繁体 |
+| `hk2s.json` | 香港繁体 → 简体 | 
+| `s2twp.json` | **简体 → 台湾正体（含台湾特定词汇）** | 
+| `tw2sp.json` | **台湾正体（含台湾特定词汇）→ 简体** |
+| `t2tw.json` | 繁体 → 台湾正体 | 
+| `tw2t.json` | 台湾正体 → 繁体 |
+| `t2hk.json` | 繁体 → 香港繁体 | 
+| `hk2t.json` | 香港繁体 → 繁体 |
+| `jp2t.json` | 日本新字体 → 繁体 | 
+| `t2jp.json` | 繁体 → 日本新字体 | 
+
+**加粗**的条目为最常用的配置。
+
+### 方法二：通过配置文件初始化
+
+如果你需要使用自定义配置或外部配置文件，这是一个将简体中文转换为繁体中文的基础示例
 
 ```rust
 use ferrous_opencc::{OpenCC, Result};
 
 fn main() -> Result<()> {
     // 使用指定的配置文件创建一个 OpenCC 实例。
-    let opencc = OpenCC::new("assets/dictionaries/s2t.json")?;
+    let opencc = OpenCC::new("assets/s2t.json")?;
 
     // 转换文本。
-    let text = "“开放中文转换”是完全由 Rust 实现的。";
+    let text = "开放中文转换是完全由 Rust 实现的。";
     let converted = opencc.convert(text);
 
     println!("{}", converted);
-    // 预期输出: 「開放中文轉換」是完全由 Rust 實現的。
+    // 预期输出: 開放中文轉換是完全由 Rust 實現的。
 
-    assert_eq!(converted, "「開放中文轉換」是完全由 Rust 實現的。");
+    assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
     Ok(())
 }
 ```
@@ -76,7 +121,7 @@ fn main() -> Result<()> {
 cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.txt --output ./STPhrases.ocb
 ```
 
-这会在相同目录下生成 `STCharacters.ocb` 文件。
+这会在相同目录下生成 `STPhrases.ocb` 文件。
 
 ## 使用自定义词典
 
@@ -87,8 +132,7 @@ cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.tx
 ### 实现步骤
 
 1.  **编写自定义配置文件**: 创建一个 `my_config.json` 文件来定义你的转换流程。这个配置文件需要明确指定词典文件的路径。
-2.  **加载配置文件**: 在你的 Rust 代码中，使用 `ferrous_opencc::Config` 来加载这个 JSON 文件。
-3.  **创建转换器**: 使用加载的 `Config` 对象来实例化 `OpenCC` 转换器。
+2.  **创建转换器**: 在你的 Rust 代码中，直接使用配置文件路径来创建 `OpenCC` 转换器。
 
 ### 示例
 
@@ -124,27 +168,23 @@ cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.tx
   ]
 }
 ```
+
 **注意**:
 - 使用 `"type": "ocd2"` 来告诉库这是一个二进制词典文件。虽然扩展名是 `.ocb`，但它的格式与 OpenCC v2 的 `.ocd2` 兼容。
 - `file` 字段中的路径是**相对于你的可执行文件运行时的当前工作目录**。
 
-#### 2. 在 Rust 代码中加载配置
+#### 2. 在 Rust 代码中使用配置
 
-现在，你可以编写 Rust 代码来加载并使用这个配置文件。
+现在，你可以编写 Rust 代码来使用这个配置文件。
 
 ```rust
-use ferrous_opencc::{Config, OpenCC};
-use std::path::Path;
+use ferrous_opencc::{OpenCC, Result};
 
-fn main() -> anyhow::Result<()> {
-    // 1. 从文件加载自定义配置
-    let config_path = Path::new("my_config.json");
-    let config = Config::from_file(config_path)?;
+fn main() -> Result<()> {
+    // 使用配置文件路径创建转换器
+    let converter = OpenCC::new("my_config.json")?;
 
-    // 2. 使用加载的配置来创建转换器
-    let converter = OpenCC::from_config(config)?;
-
-    // 3. 执行转换
+    // 执行转换
     let text = "我用路由器上网";
     let converted_text = converter.convert(text);
     
@@ -153,9 +193,7 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
-
 ```
-
 
 ## 开源协议
 

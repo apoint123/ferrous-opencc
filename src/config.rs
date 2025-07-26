@@ -10,24 +10,12 @@ use std::str::FromStr;
 pub struct Config {
     /// 转换配置的名称
     pub name: String,
-    /// 分词相关的配置
-    pub segmentation: SegmentationConfig,
     /// 转换步骤链
     pub conversion_chain: Vec<ConversionNodeConfig>,
 
     /// 配置文件所在的目录
     #[serde(skip)]
     config_directory: PathBuf,
-}
-
-/// 配置中的分词部分
-#[derive(Deserialize, Debug)]
-pub struct SegmentationConfig {
-    /// 使用的分词器类型，例如 "mm" (最大匹配)
-    #[serde(rename = "type")]
-    pub seg_type: String,
-    /// 分词所使用的词典
-    pub dict: DictConfig,
 }
 
 /// 转换链中的一个节点

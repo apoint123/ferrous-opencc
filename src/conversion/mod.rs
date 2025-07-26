@@ -1,4 +1,14 @@
 //! 负责处理文本转换的核心逻辑
+//!
+//! ## 关于转换模型的说明：为何不使用分词器
+//!
+//! 考虑一个“简体 -> 台湾正体”的转换，其中包含地区用词的替换，例如将“内存”转换为“記憶體”。
+//! OpenCC 的标准流程是：
+//! 1.  用一个通用词典（如 `STCharacters`）进行初步简繁转换。在这个阶段，“内存”会变成“內存”。
+//! 2.  用一个台湾地区用语词典（如 `TWPhrasesIT`）进行转换，它包含规则 `內存 -> 記憶體`。
+//!
+//! 如果先用 `STPhrases` 进行分词，而这个词典本身不包含“内存”这个词条，那么分词器会将它拆分为 `["内", "存"]`。
+//! 在后续的转换步骤中，程序将无法看到完整的“內存”这个词组，因此 `TWPhrasesIT` 中的 `內存 -> 記憶體` 规则也就无法被匹配到。
 
 use crate::config::ConversionNodeConfig;
 use crate::dictionary::{DictType, Dictionary};
@@ -54,27 +64,31 @@ impl ConversionChain {
         while i < text.len() {
             let remaining_text = &text[i..];
             if let Some((key, values)) = dict.match_prefix(remaining_text) {
-                // 找到了一个匹配，如果这是第一次替换，我们需要开始构建一个拥有的 String
-                if result.is_none() {
+                // 找到了一个匹配
+                let res_str = result.get_or_insert_with(|| {
                     // 第一次进行更改时，分配结果字符串，并复制到已经跳过的原始字符串部分
                     let mut new_string = String::with_capacity(text.len());
                     new_string.push_str(&text[..i]);
-                    result = Some(new_string);
-                }
+                    new_string
+                });
 
                 // 追加转换后的值，总是选择第一个候选词
-                result.as_mut().unwrap().push_str(&values[0]);
+                res_str.push_str(&values[0]);
                 i += key.len();
             } else {
                 // 在这个位置没有找到匹配
-                let ch = remaining_text.chars().next().unwrap();
-                if let Some(res_str) = result.as_mut() {
-                    // 如果已经在构建一个字符串，追加这个字符
-                    res_str.push(ch);
+                if let Some(ch) = remaining_text.chars().next() {
+                    if let Some(res_str) = result.as_mut() {
+                        // 如果已经在构建一个字符串，追加这个字符
+                        res_str.push(ch);
+                    }
+                    // 如果没有在构建字符串（result 是 None），我们什么也不做
+                    // 因为我们仍然有效地“借用”着原始的切片
+                    i += ch.len_utf8();
+                } else {
+                    // 此处理论上不可达，因为有 while i < text.len()
+                    break;
                 }
-                // 如果没有在构建字符串（result 是 None），我们什么也不做
-                // 因为我们仍然有效地“借用”着原始的切片
-                i += ch.len_utf8();
             }
         }
 
@@ -109,6 +123,7 @@ mod tests {
             let mut longest_match_len = 0;
             let mut result: Option<(&'b str, &'a [Arc<str>])> = None;
 
+            // 测试中就简单实现了
             for (key, values) in &self.entries {
                 if word.starts_with(key) && key.len() > longest_match_len {
                     longest_match_len = key.len();

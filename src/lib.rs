@@ -4,18 +4,18 @@
 //!
 //! ## 示例
 //!
-//! ```no_run
+//! ```
 //! use ferrous_opencc::OpenCC;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // 创建 OpenCC 实例
-//! let opencc = OpenCC::new("path/to/your/s2t.json")?;
+//! let opencc = OpenCC::from_config_name("s2t.json")?;
 //!
 //! // 转换文本
-//! let text = "“开放中文转换”是完全由 Rust 实现的。";
+//! let text = "开放中文转换是完全由 Rust 实现的。";
 //! let converted = opencc.convert(text);
 //!
-//! assert_eq!(converted, "「開放中文轉換」是完全由 Rust 實現的。");
+//! assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
 //! # Ok(())
 //! # }
 //! ```

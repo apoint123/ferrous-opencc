@@ -67,34 +67,8 @@ impl FstDict {
     /// 从 `.ocb` 加载词典
     fn from_ocb_file(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
-        let mut reader = BufReader::new(file);
-
-        let mut len_bytes = [0u8; 8];
-        reader.read_exact(&mut len_bytes)?;
-        let metadata_len = u64::from_le_bytes(len_bytes) as usize;
-
-        let mut metadata_bytes = vec![0; metadata_len];
-        reader.read_exact(&mut metadata_bytes)?;
-
-        let (metadata, _): (SerializableFstDict, usize) =
-            bincode::decode_from_slice(&metadata_bytes, config::standard())?;
-
-        let mut fst_bytes = Vec::new();
-        reader.read_to_end(&mut fst_bytes)?;
-
-        let map = Map::new(fst_bytes)?;
-
-        Ok(Self {
-            map,
-            values: metadata.values,
-            max_key_length: metadata.max_key_length,
-        })
-    }
-
-    /// 从 OpenCC 格式的文本文件创建词典
-    pub fn from_text(path: &Path) -> Result<Self> {
-        let ocb_bytes = crate::compiler::compile_dictionary(path)?;
-        Self::from_ocb_bytes(&ocb_bytes)
+        let reader = BufReader::new(file);
+        Self::from_reader(reader)
     }
 
     /// 序列化词典
@@ -116,10 +90,18 @@ impl FstDict {
         Ok(())
     }
 
+    /// 从 OpenCC 格式的文本文件创建词典
+    pub fn from_text(path: &Path) -> Result<Self> {
+        let ocb_bytes = crate::compiler::compile_dictionary(path)?;
+        Self::from_ocb_bytes(&ocb_bytes)
+    }
+
     /// 从内存中的 `.ocb` 字节数组创建词典
     pub fn from_ocb_bytes(bytes: &[u8]) -> Result<Self> {
-        let mut reader = bytes;
+        Self::from_reader(bytes)
+    }
 
+    fn from_reader<R: Read>(mut reader: R) -> Result<Self> {
         let mut len_bytes = [0u8; 8];
         reader.read_exact(&mut len_bytes)?;
         let metadata_len = u64::from_le_bytes(len_bytes) as usize;

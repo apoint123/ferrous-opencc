@@ -21,12 +21,12 @@ Add `ferrous-opencc` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrous-opencc = "*"
+ferrous-opencc = "0.2"
 ```
 
 ### Directory Structure
 
-This library loads dictionaries and configuration files from the local filesystem. You can use the complete set of dictionary files I've prepared, or compile your own and place them in the `assets/dictionaries/` folder.
+This library loads dictionaries and configuration files from the local filesystem. You can use the provided set of dictionary files, or compile your own and place them in the `assets/dictionaries/` folder.
 
 ```
 your-project/
@@ -41,11 +41,56 @@ your-project/
     └── main.rs
 ```
 
-You can obtain these dictionary and configuration files from the [official OpenCC repository](https://github.com/BYVoid/OpenCC).
+You can obtain these dictionary and configuration files from the [official OpenCC repository](https://github.com/BYVoid/OpenCC/tree/master/data).
 
-## Example
+## Examples
 
-A basic example of converting Simplified Chinese to Traditional Chinese.
+### Method 1: Initialize with Configuration Name (Recommended)
+
+Create an OpenCC instance using built-in configuration names, no external files required:
+
+```rust
+use ferrous_opencc::{OpenCC, Result};
+
+fn main() -> Result<()> {
+    // Create OpenCC instance with built-in configuration name
+    let opencc = OpenCC::from_config_name("s2t.json")?;
+
+    // Convert text
+    let text = "开放中文转换是完全由 Rust 实现的。";
+    let converted = opencc.convert(text);
+
+    println!("{}", converted);
+    // Expected output: 開放中文轉換是完全由 Rust 實現的。
+
+    assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
+    Ok(())
+}
+```
+
+**Supported Built-in Configuration Names:**
+| Configuration File | Conversion Direction |
+| :--- | :--- |
+| `s2t.json` | **Simplified → Traditional** |
+| `t2s.json` | **Traditional → Simplified** |
+| `s2tw.json` | Simplified → Traditional Chinese (Taiwan) | 
+| `tw2s.json` | Traditional Chinese (Taiwan) → Simplified |
+| `s2hk.json` | Simplified → Traditional Chinese (Hong Kong) |
+| `hk2s.json` | Traditional Chinese (Hong Kong) → Simplified |
+| `s2twp.json` | **Simplified → Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary)** | 
+| `tw2sp.json` | **Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary) → Simplified** |
+| `t2tw.json` | Traditional → Traditional Chinese (Taiwan) | 
+| `tw2t.json` | Traditional Chinese (Taiwan) → Traditional |
+| `t2hk.json` | Traditional → Traditional Chinese (Hong Kong) | 
+| `hk2t.json` | Traditional Chinese (Hong Kong) → Traditional |
+| `jp2t.json` | Japanese Shinjitai → Traditional | 
+| `t2jp.json` | Traditional → Japanese Shinjitai |
+
+**Bold** entries indicate the most commonly used configurations.
+
+### Method 2: Initialize with Configuration File
+
+If you need to use custom configurations or external configuration files, here is a basic example of converting Simplified Chinese to Traditional Chinese:
 
 ```rust
 use ferrous_opencc::{OpenCC, Result};
@@ -55,13 +100,13 @@ fn main() -> Result<()> {
     let opencc = OpenCC::new("assets/s2t.json")?;
 
     // Convert text.
-    let text = "“开放中文转换”是完全由 Rust 实现的。";
+    let text = "开放中文转换是完全由 Rust 实现的。";
     let converted = opencc.convert(text);
 
     println!("{}", converted);
-    // Expected output: 「開放中文轉換」是完全由 Rust 實現的。
+    // Expected output: 開放中文轉換是完全由 Rust 實現的。
 
-    assert_eq!(converted, "「開放中文轉換」是完全由 Rust 實現的。");
+    assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
     Ok(())
 }
 ```
@@ -76,7 +121,7 @@ You can run this binary target directly through Cargo.
 cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.txt --output ./STPhrases.ocb
 ```
 
-This will generate an `STCharacters.ocb` file in the same directory. 
+This will generate an `STPhrases.ocb` file in the same directory. 
 
 ## Using Custom Dictionaries
 
@@ -87,8 +132,7 @@ This requires you to create a conversion configuration manually, rather than rel
 ### How It Works
 
 1.  **Write a Custom Config File**: Create a `my_config.json` file to define your conversion pipeline. This config file must explicitly specify the paths to your dictionary files.
-2.  **Load the Config File**: In your Rust code, use `ferrous_opencc::Config` to load this JSON file.
-3.  **Create the Converter**: Instantiate the `OpenCC` converter using the loaded `Config` object.
+2.  **Create the Converter**: In your Rust code, directly create the `OpenCC` converter using the configuration file path.
 
 ### Example
 
@@ -128,23 +172,18 @@ Create a file named `my_config.json` in your project's root directory with the f
 - Use `"type": "ocd2"` to inform the library that this is a binary dictionary file. Although our extension is `.ocb`, its format is compatible with OpenCC v2's `.ocd2`.
 - The path in the `file` field is **relative to the current working directory** where your executable is run.
 
-#### 2. Load the Config in Rust
+#### 2. Use the Config in Rust
 
-Now, you can write Rust code to load and use this configuration file.
+Now, you can write Rust code to use this configuration file.
 
 ```rust
-use ferrous_opencc::{Config, OpenCC};
-use std::path::Path;
+use ferrous_opencc::{OpenCC, Result};
 
-fn main() -> anyhow::Result<()> {
-    // 1. Load the custom configuration from a file
-    let config_path = Path::new("my_config.json");
-    let config = Config::from_file(config_path)?;
+fn main() -> Result<()> {
+    // Create a converter using the configuration file path
+    let converter = OpenCC::new("my_config.json")?;
 
-    // 2. Create a converter using the loaded config
-    let converter = OpenCC::from_config(config)?;
-
-    // 3. Perform the conversion
+    // Perform the conversion
     let text = "我用路由器上网";
     let converted_text = converter.convert(text);
     

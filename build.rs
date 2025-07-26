@@ -20,13 +20,14 @@ fn run() -> Result<()> {
         env::var("CARGO_MANIFEST_DIR").context("Failed to get CARGO_MANIFEST_DIR env variable")?,
     );
 
-    let assets_dir = manifest_dir.join("assets").join("dictionaries");
+    let assets_root = manifest_dir.join("assets");
+    let dict_dir = assets_root.join("dictionaries");
 
     let mut dict_map_builder = phf_codegen::Map::<&str>::new();
     let mut dicts_to_add: Vec<(String, String)> = Vec::new();
 
-    if assets_dir.exists() {
-        for entry in fs::read_dir(&assets_dir)? {
+    if dict_dir.exists() {
+        for entry in fs::read_dir(&dict_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
@@ -52,8 +53,8 @@ fn run() -> Result<()> {
     let mut config_map_builder = phf_codegen::Map::<&str>::new();
     let mut configs_to_add: Vec<(String, String)> = Vec::new();
 
-    if assets_dir.exists() {
-        for entry in fs::read_dir(&assets_dir)? {
+    if assets_root.exists() {
+        for entry in fs::read_dir(&assets_root)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {

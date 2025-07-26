@@ -171,6 +171,12 @@ pub unsafe extern "C" fn opencc_convert(
 }
 
 /// 释放返回的字符串内存。
+///
+/// # Safety
+/// - `s_ptr` 必须是通过 `opencc_convert` 返回的有效指针，或者是 `NULL`。
+/// - `s_ptr` 只能被释放一次，重复释放会导致未定义行为。
+/// - 在调用此函数后，`s_ptr` 将变为无效指针，不应再次使用。
+/// - 传入不是由 `opencc_convert` 分配的指针会导致未定义行为。
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn opencc_free_string(s_ptr: *mut c_char) {
     if s_ptr.is_null() {
