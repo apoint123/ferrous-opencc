@@ -26,7 +26,7 @@ struct OpenCCHandle;
 
 extern "C" {
 
-/// 从嵌入的配置名称创建一个 OpenCC 实例。
+/// 从嵌入的资源创建 OpenCC 实例。
 ///
 /// # 参数
 /// - `config_name`: 一个指向字符串的指针，代表配置文件的名称。
@@ -50,7 +50,7 @@ OpenCCResult opencc_create(const char *config_name,
 /// - 在调用此函数后，`handle_ptr` 将变为无效指针，不应再次使用。
 void opencc_destroy(OpenCCHandle *handle_ptr);
 
-/// 使用指定的 OpenCC 实例转换一个 UTF-8 字符串。
+/// 根据加载的配置转换字符串。
 ///
 /// # 参数
 /// - `handle_ptr`: 指向有效 `OpenCCHandle` 实例的指针。
@@ -70,6 +70,12 @@ void opencc_destroy(OpenCCHandle *handle_ptr);
 char *opencc_convert(const OpenCCHandle *handle_ptr, const char *text);
 
 /// 释放返回的字符串内存。
+///
+/// # Safety
+/// - `s_ptr` 必须是通过 `opencc_convert` 返回的有效指针，或者是 `NULL`。
+/// - `s_ptr` 只能被释放一次，重复释放会导致未定义行为。
+/// - 在调用此函数后，`s_ptr` 将变为无效指针，不应再次使用。
+/// - 传入不是由 `opencc_convert` 分配的指针会导致未定义行为。
 void opencc_free_string(char *s_ptr);
 
 }  // extern "C"

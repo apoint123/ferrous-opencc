@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 /// 一个集合词典
 #[derive(Clone, Default)]
-pub struct DictGroup {
+pub(crate) struct DictGroup {
     /// 该词典组包含的子词典向量
     dicts: Vec<Arc<dyn Dictionary>>,
     /// 所有子词典中最长的键的长度，用于优化
@@ -15,7 +15,7 @@ pub struct DictGroup {
 
 impl DictGroup {
     /// 从一个包含多个词典的向量中创建一个新的 `DictGroup`
-    pub fn new(dicts: Vec<Arc<dyn Dictionary>>) -> Self {
+    pub(super) fn new(dicts: Vec<Arc<dyn Dictionary>>) -> Self {
         let max_key_length = dicts.iter().map(|d| d.max_key_length()).max().unwrap_or(0);
         Self {
             dicts,

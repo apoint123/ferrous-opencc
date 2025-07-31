@@ -1,3 +1,15 @@
+use std::{
+    collections::BTreeMap,
+    fs::File,
+    io::{BufRead, BufReader, Write},
+    path::Path,
+    sync::Arc,
+};
+
+use anyhow::{Context, Result};
+use bincode::{Decode, Encode, config};
+use fst::MapBuilder;
+
 #[derive(Encode, Decode, Debug)]
 pub struct SerializableFstDict {
     pub values: Vec<Vec<Arc<str>>>,
@@ -32,7 +44,9 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
     for (key, values) in entries {
         let index = values_vec.len() as u64;
         values_vec.push(values);
-        builder.insert(key, index).with_context(|| "Failed to insert key-value pair into FST")?;
+        builder
+            .insert(key, index)
+            .with_context(|| "Failed to insert key-value pair into FST")?;
     }
 
     let fst_map_bytes = builder

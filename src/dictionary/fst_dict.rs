@@ -5,6 +5,7 @@
 use crate::dictionary::Dictionary;
 use crate::error::Result;
 use bincode::{Decode, Encode, config};
+use ferrous_opencc_compiler::compile_dictionary;
 use fst::Map;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
@@ -92,7 +93,7 @@ impl FstDict {
 
     /// 从 OpenCC 格式的文本文件创建词典
     pub fn from_text(path: &Path) -> Result<Self> {
-        let ocb_bytes = crate::compiler::compile_dictionary(path)?;
+        let ocb_bytes = compile_dictionary(path)?;
         Self::from_ocb_bytes(&ocb_bytes)
     }
 

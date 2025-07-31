@@ -25,7 +25,7 @@ pub struct ConversionChain {
 
 impl ConversionChain {
     /// 从文件加载配置来创建一个新的转换链
-    pub fn from_config(config: &[ConversionNodeConfig], config_dir: &Path) -> Result<Self> {
+    pub(super) fn from_config(config: &[ConversionNodeConfig], config_dir: &Path) -> Result<Self> {
         let dictionaries = config
             .iter()
             .map(|node| DictType::from_config(&node.dict, config_dir))
@@ -34,7 +34,7 @@ impl ConversionChain {
     }
 
     /// 从嵌入式资源加载配置来创建一个新的转换链
-    pub fn from_config_embedded(config: &[ConversionNodeConfig]) -> Result<Self> {
+    pub(super) fn from_config_embedded(config: &[ConversionNodeConfig]) -> Result<Self> {
         let dictionaries = config
             .iter()
             // 调用 DictType 即将创建的嵌入式构造函数
@@ -45,7 +45,7 @@ impl ConversionChain {
 
     /// 对分词后的片段执行转换。
     /// 每个文本片段都会经过整个词典转换链的处理。
-    pub fn convert(&self, text: &str) -> String {
+    pub(super) fn convert(&self, text: &str) -> String {
         let mut current_cow = Cow::Borrowed(text);
 
         // 将 Cow 传递给转换链中的每个词典

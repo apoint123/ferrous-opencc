@@ -1,17 +1,12 @@
 use anyhow::{Context, Result};
-use bincode::{Decode, Encode, config};
-use fst::MapBuilder;
-use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
-use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
-include!("compiler_logic.rs");
+use ferrous_opencc_compiler::compile_dictionary;
 
 fn run() -> Result<()> {
     let out_dir = env::var("OUT_DIR").context("Failed to get OUT_DIR environment variable")?;
@@ -91,6 +86,13 @@ fn run() -> Result<()> {
         "pub static EMBEDDED_CONFIGS: phf::Map<&'static str, &'static str> = {};",
         config_map_builder.build()
     )?;
+
+    cbindgen::Builder::new()
+        .with_crate(manifest_dir)
+        .with_config(cbindgen::Config::from_file("cbindgen.toml").unwrap())
+        .generate()
+        .expect("Unable to generate bindings")
+        .write_to_file("opencc.h");
 
     Ok(())
 }

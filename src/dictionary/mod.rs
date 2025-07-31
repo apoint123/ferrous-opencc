@@ -1,9 +1,9 @@
 //! 负责词典处理的模块
 
-pub mod dict_group;
+pub(super) mod dict_group;
 pub mod fst_dict;
 
-pub mod embedded {
+pub(super) mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 }
 
@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 /// 代表词典基本功能的 trait
-pub trait Dictionary: Send + Sync + Debug {
+pub(super) trait Dictionary: Send + Sync + Debug {
     /// 在词典中查找给定单词的最长前缀匹配
     ///
     /// # 返回
@@ -30,14 +30,18 @@ pub trait Dictionary: Send + Sync + Debug {
 
 /// 一个内部枚举，用作词典工厂函数的命名空间
 /// 它用于根据配置分发不同词典的加载逻辑。
-pub enum DictType {
+#[allow(dead_code)]
+pub(crate) enum DictType {
     Fst(FstDict),
     Group(DictGroup),
 }
 
 impl DictType {
     /// 从文件加载字典
-    pub fn from_config(config: &DictConfig, config_dir: &Path) -> Result<Arc<dyn Dictionary>> {
+    pub(super) fn from_config(
+        config: &DictConfig,
+        config_dir: &Path,
+    ) -> Result<Arc<dyn Dictionary>> {
         match config.dict_type.as_str() {
             "text" | "ocd2" => {
                 let file_name = config.file.as_ref().ok_or_else(|| {
@@ -64,7 +68,7 @@ impl DictType {
     }
 
     /// 从嵌入的资源加载字典
-    pub fn from_config_embedded(config: &DictConfig) -> Result<Arc<dyn Dictionary>> {
+    pub(super) fn from_config_embedded(config: &DictConfig) -> Result<Arc<dyn Dictionary>> {
         match config.dict_type.as_str() {
             "text" | "ocd2" => {
                 let file_name = config.file.as_ref().ok_or_else(|| {
