@@ -9,7 +9,7 @@
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // 创建 OpenCC 实例
-//! let opencc = OpenCC::from_config_name("s2t.json")?;
+//! let opencc = OpenCC::from_config(ferrous_opencc::config::BuiltinConfig::S2t)?;
 //!
 //! // 转换文本
 //! let text = "开放中文转换是完全由 Rust 实现的。";
@@ -24,16 +24,23 @@ pub mod config;
 pub mod conversion;
 pub mod dictionary;
 pub mod error;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;
+
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
 use config::Config;
 use conversion::ConversionChain;
 use error::Result;
 use std::path::Path;
 
+use crate::{config::BuiltinConfig, dictionary::embedded};
+
 include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 
 /// 核心的 OpenCC 转换器
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct OpenCC {
     /// 配置名称
     name: String,
@@ -66,15 +73,23 @@ impl OpenCC {
         })
     }
 
-    // 从嵌入的资源创建 OpenCC 实例
-    pub fn from_config_name(name: &str) -> Result<Self> {
-        use crate::dictionary::embedded;
-
+    /// 从内置的配置创建 OpenCC 实例。
+    ///
+    /// # 示例
+    /// ```
+    /// use ferrous_opencc::{OpenCC, config::BuiltinConfig, error::Result};
+    ///
+    /// fn main() -> Result<()> {
+    ///     let opencc = OpenCC::from_config(BuiltinConfig::S2t)?;
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn from_config(config_enum: BuiltinConfig) -> Result<Self> {
+        let name = config_enum.to_filename();
         let config_str = embedded::EMBEDDED_CONFIGS
             .get(name)
             .ok_or_else(|| error::OpenCCError::ConfigNotFound(name.to_string()))?;
 
-        // 从字符串解析配置
         let config: Config = config_str.parse()?;
 
         let conversion_chain = ConversionChain::from_config_embedded(&config.conversion_chain)?;
@@ -101,5 +116,64 @@ impl OpenCC {
     /// 返回当前加载的配置名称
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+impl OpenCC {
+    /// 创建一个新的 `OpenCC` 实例。
+    ///
+    /// @param {BuiltinConfig} config - 要使用的内置配置枚举。
+    /// @returns {Promise<OpenCC>} - 一个 Promise，成功时解析为 OpenCC 实例。
+    /// @throws {JsValue} - 如果配置加载失败，则抛出一个错误对象。
+    ///
+    /// @example
+    /// ```javascript
+    /// import init, { OpenCC, BuiltinConfig } from './pkg/ferrous_opencc.js';
+    ///
+    /// async function main() {
+    ///   await init();
+    ///   try {
+    ///     const converter = new OpenCC(BuiltinConfig.S2t);
+    ///     console.log('加载成功:', converter.name);
+    ///   } catch (err) {
+    ///     console.error('加载失败:', err);
+    ///   }
+    /// }
+    /// main();
+    /// ```
+    #[wasm_bindgen(constructor)]
+    pub fn new_wasm(config: BuiltinConfig) -> std::result::Result<OpenCC, JsValue> {
+        OpenCC::from_config(config).map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    /// 根据加载的配置转换字符串。
+    ///
+    /// @param {string} input - 需要转换的字符串。
+    /// @returns {string} - 转换后的字符串。
+    ///
+    /// @example
+    /// ```javascript
+    /// const traditionalText = converter.convert("开放中文转换");
+    /// console.log(traditionalText); // 预期: 開放中文轉換
+    /// ```
+    #[wasm_bindgen(js_name = convert)]
+    pub fn convert_wasm(&self, input: &str) -> String {
+        self.convert(input)
+    }
+
+    /// 获取当前加载的配置的名称。
+    ///
+    /// @returns {string} - 配置的名称。
+    ///
+    /// @example
+    /// ```javascript
+    /// const configName = converter.name;
+    /// console.log(configName);
+    /// ```
+    #[wasm_bindgen(getter, js_name = name)]
+    pub fn name_wasm(&self) -> String {
+        self.name.clone()
     }
 }

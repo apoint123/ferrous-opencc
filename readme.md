@@ -53,8 +53,8 @@ Create an OpenCC instance using built-in configuration names, no external files 
 use ferrous_opencc::{OpenCC, Result};
 
 fn main() -> Result<()> {
-    // Create OpenCC instance with built-in configuration name
-    let opencc = OpenCC::from_config_name("s2t.json")?;
+    // Create OpenCC instance with built-in configuration
+    let opencc = OpenCC::from_config(ferrous_opencc::config::BuiltinConfig::S2t)?;
 
     // Convert text
     let text = "开放中文转换是完全由 Rust 实现的。";
@@ -69,22 +69,22 @@ fn main() -> Result<()> {
 ```
 
 **Supported Built-in Configuration Names:**
-| Configuration File | Conversion Direction |
+| Configuration Name | Conversion Direction |
 | :--- | :--- |
-| `s2t.json` | **Simplified → Traditional** |
-| `t2s.json` | **Traditional → Simplified** |
-| `s2tw.json` | Simplified → Traditional Chinese (Taiwan) | 
-| `tw2s.json` | Traditional Chinese (Taiwan) → Simplified |
-| `s2hk.json` | Simplified → Traditional Chinese (Hong Kong) |
-| `hk2s.json` | Traditional Chinese (Hong Kong) → Simplified |
-| `s2twp.json` | **Simplified → Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary)** | 
-| `tw2sp.json` | **Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary) → Simplified** |
-| `t2tw.json` | Traditional → Traditional Chinese (Taiwan) | 
-| `tw2t.json` | Traditional Chinese (Taiwan) → Traditional |
-| `t2hk.json` | Traditional → Traditional Chinese (Hong Kong) | 
-| `hk2t.json` | Traditional Chinese (Hong Kong) → Traditional |
-| `jp2t.json` | Japanese Shinjitai → Traditional | 
-| `t2jp.json` | Traditional → Japanese Shinjitai |
+| `BuiltinConfig::S2t` | **Simplified → Traditional** |
+| `BuiltinConfig::T2s` | **Traditional → Simplified** |
+| `BuiltinConfig::S2tw` | Simplified → Traditional Chinese (Taiwan) | 
+| `BuiltinConfig::Tw2s` | Traditional Chinese (Taiwan) → Simplified |
+| `BuiltinConfig::S2hk` | Simplified → Traditional Chinese (Hong Kong) |
+| `BuiltinConfig::Hk2s` | Traditional Chinese (Hong Kong) → Simplified |
+| `BuiltinConfig::S2twp` | **Simplified → Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary)** | 
+| `BuiltinConfig::Tw2sp` | **Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary) → Simplified** |
+| `BuiltinConfig::T2tw` | Traditional → Traditional Chinese (Taiwan) | 
+| `BuiltinConfig::Tw2t` | Traditional Chinese (Taiwan) → Traditional |
+| `BuiltinConfig::T2hk` | Traditional → Traditional Chinese (Hong Kong) | 
+| `BuiltinConfig::Hk2t` | Traditional Chinese (Hong Kong) → Traditional |
+| `BuiltinConfig::Jp2t` | Japanese Shinjitai → Traditional | 
+| `BuiltinConfig::T2jp` | Traditional → Japanese Shinjitai |
 
 **Bold** entries indicate the most commonly used configurations.
 

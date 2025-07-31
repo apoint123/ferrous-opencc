@@ -53,8 +53,8 @@ ferrous-opencc = "0.2"
 use ferrous_opencc::{OpenCC, Result};
 
 fn main() -> Result<()> {
-    // 使用内置配置名创建 OpenCC 实例
-    let opencc = OpenCC::from_config_name("s2t.json")?;
+    // 使用内置配置创建 OpenCC 实例
+    let opencc = OpenCC::from_config(ferrous_opencc::config::BuiltinConfig::S2t)?;
 
     // 转换文本
     let text = "开放中文转换是完全由 Rust 实现的。";
@@ -69,22 +69,22 @@ fn main() -> Result<()> {
 ```
 
 **支持的内置配置名：**
-| 配置文件 | 转换方向 |
+| 配置名称 | 转换方向 |
 | :--- | :--- |
-| `s2t.json` | **简体 → 繁体** |
-| `t2s.json` | **繁体 → 简体** |
-| `s2tw.json` | 简体 → 台湾正体 | 
-| `tw2s.json` | 台湾正体 → 简体 | 
-| `s2hk.json` | 简体 → 香港繁体 |
-| `hk2s.json` | 香港繁体 → 简体 | 
-| `s2twp.json` | **简体 → 台湾正体（含台湾特定词汇）** | 
-| `tw2sp.json` | **台湾正体（含台湾特定词汇）→ 简体** |
-| `t2tw.json` | 繁体 → 台湾正体 | 
-| `tw2t.json` | 台湾正体 → 繁体 |
-| `t2hk.json` | 繁体 → 香港繁体 | 
-| `hk2t.json` | 香港繁体 → 繁体 |
-| `jp2t.json` | 日本新字体 → 繁体 | 
-| `t2jp.json` | 繁体 → 日本新字体 | 
+| `BuiltinConfig::S2t` | **简体 → 繁体** |
+| `BuiltinConfig::T2s` | **繁体 → 简体** |
+| `BuiltinConfig::S2tw` | 简体 → 台湾正体 | 
+| `BuiltinConfig::Tw2s` | 台湾正体 → 简体 | 
+| `BuiltinConfig::S2hk` | 简体 → 香港繁体 |
+| `BuiltinConfig::Hk2s` | 香港繁体 → 简体 | 
+| `BuiltinConfig::S2twp` | **简体 → 台湾正体（含台湾特定词汇）** | 
+| `BuiltinConfig::Tw2sp` | **台湾正体（含台湾特定词汇）→ 简体** |
+| `BuiltinConfig::T2tw` | 繁体 → 台湾正体 | 
+| `BuiltinConfig::Tw2t` | 台湾正体 → 繁体 |
+| `BuiltinConfig::T2hk` | 繁体 → 香港繁体 | 
+| `BuiltinConfig::Hk2t` | 香港繁体 → 繁体 |
+| `BuiltinConfig::Jp2t` | 日本新字体 → 繁体 | 
+| `BuiltinConfig::T2jp` | 繁体 → 日本新字体 | 
 
 **加粗**的条目为最常用的配置。
 

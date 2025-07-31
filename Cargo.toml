@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-opencc"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 authors = ["apoint123 <vpnzaph@outlook.com>"]
 description = "A pure Rust implementation of Open Chinese Convert (OpenCC), for fast and reliable conversion between Traditional and Simplified Chinese."
@@ -20,7 +20,12 @@ thiserror = "2"
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 phf = { version = "0", features = ["macros"] }
-ferrous-opencc-compiler = { path = "ferrous-opencc-compiler" }
+ferrous-opencc-compiler = "0.1"
+wasm-bindgen = { version = "0.2", optional = true }
+
+[features]
+default = []
+wasm = ["wasm-bindgen"]
 
 [lib]
 name = "ferrous_opencc"
@@ -33,5 +38,13 @@ path = "src/bin/dict-compiler.rs"
 [build-dependencies]
 anyhow = "1"
 phf_codegen = "0"
-ferrous-opencc-compiler = { path = "ferrous-opencc-compiler" }
+ferrous-opencc-compiler = "0.1"
 cbindgen = "0.29"
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = 'abort'
+debug = false

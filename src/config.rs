@@ -5,6 +5,9 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 /// 顶层的 JSON 配置结构
 #[derive(Deserialize, Debug)]
 pub struct Config {
@@ -16,6 +19,84 @@ pub struct Config {
     /// 配置文件所在的目录
     #[serde(skip)]
     config_directory: PathBuf,
+}
+
+/// 所有内置的 OpenCC 配置
+#[repr(i32)]
+#[cfg_attr(feature = "wasm", wasm_bindgen)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BuiltinConfig {
+    /// 简体到繁体
+    S2t = 0,
+    /// 繁体到简体
+    T2s = 1,
+    /// 简体到台湾正体
+    S2tw = 2,
+    /// 台湾正体到简体
+    Tw2s = 3,
+    /// 简体到香港繁体
+    S2hk = 4,
+    /// 香港繁体到简体
+    Hk2s = 5,
+    /// 简体到台湾正体（包含词汇转换）
+    S2twp = 6,
+    /// 台湾正体（包含词汇转换）到简体
+    Tw2sp = 7,
+    /// 繁体到台湾正体
+    T2tw = 8,
+    /// 台湾正体到繁体
+    Tw2t = 9,
+    /// 繁体到香港繁体
+    T2hk = 10,
+    /// 香港繁体到繁体
+    Hk2t = 11,
+    /// 日语新字体到繁体
+    Jp2t = 12,
+    /// 繁体到日语新字体
+    T2jp = 13,
+}
+
+impl BuiltinConfig {
+    /// 将枚举成员转换为对应的文件名字符串
+    pub fn to_filename(&self) -> &'static str {
+        match self {
+            BuiltinConfig::S2t => "s2t.json",
+            BuiltinConfig::T2s => "t2s.json",
+            BuiltinConfig::S2tw => "s2tw.json",
+            BuiltinConfig::Tw2s => "tw2s.json",
+            BuiltinConfig::S2hk => "s2hk.json",
+            BuiltinConfig::Hk2s => "hk2s.json",
+            BuiltinConfig::S2twp => "s2twp.json",
+            BuiltinConfig::Tw2sp => "tw2sp.json",
+            BuiltinConfig::T2tw => "t2tw.json",
+            BuiltinConfig::Tw2t => "tw2t.json",
+            BuiltinConfig::T2hk => "t2hk.json",
+            BuiltinConfig::Hk2t => "hk2t.json",
+            BuiltinConfig::Jp2t => "jp2t.json",
+            BuiltinConfig::T2jp => "t2jp.json",
+        }
+    }
+
+    /// 从文件名字符串转换为对应的枚举成员
+    pub fn from_filename(filename: &str) -> Result<Self> {
+        match filename {
+            "s2t.json" => Ok(BuiltinConfig::S2t),
+            "t2s.json" => Ok(BuiltinConfig::T2s),
+            "s2tw.json" => Ok(BuiltinConfig::S2tw),
+            "tw2s.json" => Ok(BuiltinConfig::Tw2s),
+            "s2hk.json" => Ok(BuiltinConfig::S2hk),
+            "hk2s.json" => Ok(BuiltinConfig::Hk2s),
+            "s2twp.json" => Ok(BuiltinConfig::S2twp),
+            "tw2sp.json" => Ok(BuiltinConfig::Tw2sp),
+            "t2tw.json" => Ok(BuiltinConfig::T2tw),
+            "tw2t.json" => Ok(BuiltinConfig::Tw2t),
+            "t2hk.json" => Ok(BuiltinConfig::T2hk),
+            "hk2t.json" => Ok(BuiltinConfig::Hk2t),
+            "jp2t.json" => Ok(BuiltinConfig::Jp2t),
+            "t2jp.json" => Ok(BuiltinConfig::T2jp),
+            _ => Err(OpenCCError::ConfigNotFound(filename.to_string())),
+        }
+    }
 }
 
 /// 转换链中的一个节点

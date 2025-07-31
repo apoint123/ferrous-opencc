@@ -2,6 +2,8 @@
 name = "ferrous-opencc-compiler"
 version = "0.1.0"
 edition = "2024"
+description = "用于将词典文件编译成二进制文件的 crate"
+license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1"
