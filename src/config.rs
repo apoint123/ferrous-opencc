@@ -1,5 +1,5 @@
 use crate::error::{OpenCCError, Result};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
@@ -9,7 +9,7 @@ use std::str::FromStr;
 use wasm_bindgen::prelude::*;
 
 /// 顶层的 JSON 配置结构
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     /// 转换配置的名称
     pub name: String,
@@ -24,7 +24,7 @@ pub struct Config {
 /// 所有内置的 OpenCC 配置
 #[repr(i32)]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinConfig {
     /// 简体到繁体
     S2t = 0,
@@ -101,14 +101,14 @@ impl BuiltinConfig {
 
 /// 转换链中的一个节点
 /// 每个节点对应一个基于词典的转换步骤
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ConversionNodeConfig {
     /// 此转换步骤要使用的词典
     pub dict: DictConfig,
 }
 
 /// 代表一个词典配置，可以是一个单独的词典文件，也可以是一组词典
-#[derive(Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DictConfig {
     /// 词典的类型，例如 "text" 或 "group"
     #[serde(rename = "type")]
