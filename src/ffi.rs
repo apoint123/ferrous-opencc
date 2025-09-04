@@ -1,4 +1,4 @@
-//! Ferrous OpenCC 的 FFI 接口。
+//! `Ferrous OpenCC` 的 FFI 接口。
 
 use crate::OpenCC;
 use crate::config::BuiltinConfig;
@@ -19,23 +19,23 @@ pub enum OpenCCResult {
     /// 传入的参数无效。
     InvalidArgument = 2,
 
-    /// OpenCC 实例创建失败（找不到配置文件之类的）。
+    /// `OpenCC` 实例创建失败（找不到配置文件之类的）。
     CreationFailed = 3,
 
-    /// 发生了一个未预料的错误（通常是 panic）。
+    /// 发生了一个未预料的错误（通常是 `panic`）。
     InternalError = 4,
 }
 
-/// OpenCC 的不透明句柄。
+/// `OpenCC` 的不透明句柄。
 pub struct OpenCCHandle {
-    /// 核心的 OpenCC 实例。
+    /// 核心的 `OpenCC` 实例。
     instance: OpenCC,
 
     /// 一个原子标志，用于防止双重释放。
     is_destroyed: AtomicBool,
 }
 
-/// 从嵌入的资源创建 OpenCC 实例。
+/// 从嵌入的资源创建 `OpenCC` 实例。
 ///
 /// # 参数
 /// - `config`: 代表内置配置的枚举值，例如 `S2t`。
@@ -59,22 +59,19 @@ pub unsafe extern "C" fn opencc_create(
         }
         unsafe { *out_handle = std::ptr::null_mut() };
 
-        match OpenCC::from_config(config) {
-            Ok(instance) => {
-                let handle = Box::new(OpenCCHandle {
-                    instance,
-                    is_destroyed: AtomicBool::new(false),
-                });
-                unsafe { *out_handle = Box::into_raw(handle) };
-                OpenCCResult::Success
-            }
-            Err(_) => OpenCCResult::CreationFailed,
-        }
+        OpenCC::from_config(config).map_or(OpenCCResult::CreationFailed, |instance| {
+            let handle = Box::new(OpenCCHandle {
+                instance,
+                is_destroyed: AtomicBool::new(false),
+            });
+            unsafe { *out_handle = Box::into_raw(handle) };
+            OpenCCResult::Success
+        })
     }));
     result.unwrap_or(OpenCCResult::InternalError)
 }
 
-/// 销毁 OpenCC 实例，并释放所有资源。
+/// 销毁 `OpenCC` 实例，并释放所有资源。
 ///
 /// # Safety
 /// - `handle_ptr` 必须是一个有效指针。
@@ -140,17 +137,13 @@ pub unsafe extern "C" fn opencc_convert(
             return std::ptr::null_mut();
         }
         let c_str = unsafe { CStr::from_ptr(text) };
-        let r_str = match c_str.to_str() {
-            Ok(s) => s,
-            Err(_) => return std::ptr::null_mut(),
+        let Ok(r_str) = c_str.to_str() else {
+            return std::ptr::null_mut();
         };
 
         let converted_string = handle.instance.convert(r_str);
 
-        match CString::new(converted_string) {
-            Ok(c_string) => c_string.into_raw(),
-            Err(_) => std::ptr::null_mut(),
-        }
+        CString::new(converted_string).map_or(std::ptr::null_mut(), CString::into_raw)
     }));
 
     result.unwrap_or_else(|_| {

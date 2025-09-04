@@ -69,22 +69,22 @@ fn main() -> Result<()> {
 ```
 
 **Supported Built-in Configuration Names:**
-| Configuration Name | Conversion Direction |
-| :--- | :--- |
-| `BuiltinConfig::S2t` | **Simplified → Traditional** |
-| `BuiltinConfig::T2s` | **Traditional → Simplified** |
-| `BuiltinConfig::S2tw` | Simplified → Traditional Chinese (Taiwan) | 
-| `BuiltinConfig::Tw2s` | Traditional Chinese (Taiwan) → Simplified |
-| `BuiltinConfig::S2hk` | Simplified → Traditional Chinese (Hong Kong) |
-| `BuiltinConfig::Hk2s` | Traditional Chinese (Hong Kong) → Simplified |
-| `BuiltinConfig::S2twp` | **Simplified → Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary)** | 
+| Configuration Name     | Conversion Direction                                                            |
+| :--------------------- | :------------------------------------------------------------------------------ |
+| `BuiltinConfig::S2t`   | **Simplified → Traditional**                                                    |
+| `BuiltinConfig::T2s`   | **Traditional → Simplified**                                                    |
+| `BuiltinConfig::S2tw`  | Simplified → Traditional Chinese (Taiwan)                                       |
+| `BuiltinConfig::Tw2s`  | Traditional Chinese (Taiwan) → Simplified                                       |
+| `BuiltinConfig::S2hk`  | Simplified → Traditional Chinese (Hong Kong)                                    |
+| `BuiltinConfig::Hk2s`  | Traditional Chinese (Hong Kong) → Simplified                                    |
+| `BuiltinConfig::S2twp` | **Simplified → Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary)** |
 | `BuiltinConfig::Tw2sp` | **Traditional Chinese (Taiwan) (with Taiwan-specific vocabulary) → Simplified** |
-| `BuiltinConfig::T2tw` | Traditional → Traditional Chinese (Taiwan) | 
-| `BuiltinConfig::Tw2t` | Traditional Chinese (Taiwan) → Traditional |
-| `BuiltinConfig::T2hk` | Traditional → Traditional Chinese (Hong Kong) | 
-| `BuiltinConfig::Hk2t` | Traditional Chinese (Hong Kong) → Traditional |
-| `BuiltinConfig::Jp2t` | Japanese Shinjitai → Traditional | 
-| `BuiltinConfig::T2jp` | Traditional → Japanese Shinjitai |
+| `BuiltinConfig::T2tw`  | Traditional → Traditional Chinese (Taiwan)                                      |
+| `BuiltinConfig::Tw2t`  | Traditional Chinese (Taiwan) → Traditional                                      |
+| `BuiltinConfig::T2hk`  | Traditional → Traditional Chinese (Hong Kong)                                   |
+| `BuiltinConfig::Hk2t`  | Traditional Chinese (Hong Kong) → Traditional                                   |
+| `BuiltinConfig::Jp2t`  | Japanese Shinjitai → Traditional                                                |
+| `BuiltinConfig::T2jp`  | Traditional → Japanese Shinjitai                                                |
 
 **Bold** entries indicate the most commonly used configurations.
 

@@ -1,5 +1,5 @@
 use clap::Parser;
-use ferrous_opencc::dictionary::fst_dict::FstDict;
+use ferrous_opencc::dictionary::FstDict;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]

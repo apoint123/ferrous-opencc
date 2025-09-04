@@ -1,7 +1,7 @@
 //! 负责词典处理的模块
 
-pub(super) mod dict_group;
-pub mod fst_dict;
+mod dict_group;
+mod fst_dict;
 
 pub(super) mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
@@ -10,7 +10,7 @@ pub(super) mod embedded {
 use crate::config::DictConfig;
 use crate::error::{OpenCCError, Result};
 use dict_group::DictGroup;
-use fst_dict::FstDict;
+pub use fst_dict::FstDict;
 use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -31,7 +31,7 @@ pub(super) trait Dictionary: Send + Sync + Debug {
 /// 一个内部枚举，用作词典工厂函数的命名空间
 /// 它用于根据配置分发不同词典的加载逻辑。
 #[allow(dead_code)]
-pub(crate) enum DictType {
+pub(super) enum DictType {
     Fst(FstDict),
     Group(DictGroup),
 }

@@ -1,4 +1,4 @@
-//! # 纯 Rust 实现的 OpenCC
+//! # 纯 Rust 实现的 `OpenCC`
 //!
 //! 为繁体中文和简体中文之间提供高性能的转换。
 //!
@@ -39,7 +39,7 @@ use crate::{config::BuiltinConfig, dictionary::embedded};
 
 include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 
-/// 核心的 OpenCC 转换器
+/// 核心的 `OpenCC` 转换器
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct OpenCC {
     /// 配置名称
@@ -73,7 +73,7 @@ impl OpenCC {
         })
     }
 
-    /// 从内置的配置创建 OpenCC 实例。
+    /// 从内置的配置创建 `OpenCC` 实例。
     ///
     /// # 示例
     /// ```
@@ -109,11 +109,13 @@ impl OpenCC {
     /// # 返回
     ///
     /// 转换后的字符串
+    #[must_use]
     pub fn convert(&self, input: &str) -> String {
         self.conversion_chain.convert(input)
     }
 
     /// 返回当前加载的配置名称
+    #[must_use]
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -124,9 +126,9 @@ impl OpenCC {
 impl OpenCC {
     /// 创建一个新的 `OpenCC` 实例。
     ///
-    /// @param {BuiltinConfig} config - 要使用的内置配置枚举。
-    /// @returns {Promise<OpenCC>} - 一个 Promise，成功时解析为 OpenCC 实例。
-    /// @throws {JsValue} - 如果配置加载失败，则抛出一个错误对象。
+    /// @param {`BuiltinConfig`} `config` - 要使用的内置配置枚举。
+    /// @returns {`Promise<OpenCC>`} - 一个 `Promise`，成功时解析为 `OpenCC` 实例。
+    /// @throws {`JsValue`} - 如果配置加载失败，则抛出一个错误对象。
     ///
     /// @example
     /// ```javascript
@@ -144,8 +146,8 @@ impl OpenCC {
     /// main();
     /// ```
     #[wasm_bindgen(constructor)]
-    pub fn new_wasm(config: BuiltinConfig) -> std::result::Result<OpenCC, JsValue> {
-        OpenCC::from_config(config).map_err(|e| JsValue::from_str(&e.to_string()))
+    pub fn new_wasm(config: BuiltinConfig) -> std::result::Result<Self, JsValue> {
+        Self::from_config(config).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// 根据加载的配置转换字符串。
@@ -159,6 +161,7 @@ impl OpenCC {
     /// console.log(traditionalText); // 预期: 開放中文轉換
     /// ```
     #[wasm_bindgen(js_name = convert)]
+    #[must_use]
     pub fn convert_wasm(&self, input: &str) -> String {
         self.convert(input)
     }
@@ -173,6 +176,7 @@ impl OpenCC {
     /// console.log(configName);
     /// ```
     #[wasm_bindgen(getter, js_name = name)]
+    #[must_use]
     pub fn name_wasm(&self) -> String {
         self.name.clone()
     }

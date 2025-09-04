@@ -7,7 +7,7 @@
 #include <ostream>
 #include <new>
 
-/// 所有内置的 OpenCC 配置
+/// 所有内置的 `OpenCC` 配置
 enum class BuiltinConfig : int32_t {
   /// 简体到繁体
   S2t = 0,
@@ -47,18 +47,18 @@ enum class OpenCCResult : int32_t {
   InvalidHandle = 1,
   /// 传入的参数无效。
   InvalidArgument = 2,
-  /// OpenCC 实例创建失败（找不到配置文件之类的）。
+  /// `OpenCC` 实例创建失败（找不到配置文件之类的）。
   CreationFailed = 3,
-  /// 发生了一个未预料的错误（通常是 panic）。
+  /// 发生了一个未预料的错误（通常是 `panic`）。
   InternalError = 4,
 };
 
-/// OpenCC 的不透明句柄。
+/// `OpenCC` 的不透明句柄。
 struct OpenCCHandle;
 
 extern "C" {
 
-/// 从嵌入的资源创建 OpenCC 实例。
+/// 从嵌入的资源创建 `OpenCC` 实例。
 ///
 /// # 参数
 /// - `config`: 代表内置配置的枚举值，例如 `S2t`。
@@ -74,7 +74,7 @@ extern "C" {
 OpenCCResult opencc_create(BuiltinConfig config,
                            OpenCCHandle **out_handle);
 
-/// 销毁 OpenCC 实例，并释放所有资源。
+/// 销毁 `OpenCC` 实例，并释放所有资源。
 ///
 /// # Safety
 /// - `handle_ptr` 必须是一个有效指针。

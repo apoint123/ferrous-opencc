@@ -91,7 +91,7 @@ impl FstDict {
         Ok(())
     }
 
-    /// 从 OpenCC 格式的文本文件创建词典
+    /// 从 `OpenCC` 格式的文本文件创建词典
     pub fn from_text(path: &Path) -> Result<Self> {
         let ocb_bytes = compile_dictionary(path)?;
         Self::from_ocb_bytes(&ocb_bytes)
@@ -202,26 +202,26 @@ mod tests {
 
         let (key, values) = dict.match_prefix("一个").unwrap();
         assert_eq!(key, "一个");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["一個"]);
         let (key, values) = dict.match_prefix("一个半小时").unwrap();
         assert_eq!(key, "一个半");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["一個半"]);
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["一個半"]);
 
         let (key, values) = dict.match_prefix("世纪之交").unwrap();
         assert_eq!(key, "世纪");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["世紀"]);
         let (key, values) = dict.match_prefix("一").unwrap();
         assert_eq!(key, "一");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["一"]);
         let (key, values) = dict.match_prefix("一").unwrap();
         assert_eq!(key, "一");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["一"]);
     }
 
@@ -241,12 +241,12 @@ mod tests {
 
         let (key, values) = dict_from_ocb.match_prefix("你好世界").unwrap();
         assert_eq!(key, "你好");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["Hello"]);
 
         let (key, values) = dict_from_ocb.match_prefix("你好世界").unwrap();
         assert_eq!(key, "你好");
-        let values_str: Vec<&str> = values.iter().map(|v| v.as_ref()).collect();
+        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
         assert_eq!(values_str, ["Hello"]);
     }
 }

@@ -1,14 +1,4 @@
 //! 负责处理文本转换的核心逻辑
-//!
-//! ## 关于转换模型的说明：为何不使用分词器
-//!
-//! 考虑一个“简体 -> 台湾正体”的转换，其中包含地区用词的替换，例如将“内存”转换为“記憶體”。
-//! OpenCC 的标准流程是：
-//! 1.  用一个通用词典（如 `STCharacters`）进行初步简繁转换。在这个阶段，“内存”会变成“內存”。
-//! 2.  用一个台湾地区用语词典（如 `TWPhrasesIT`）进行转换，它包含规则 `內存 -> 記憶體`。
-//!
-//! 如果先用 `STPhrases` 进行分词，而这个词典本身不包含“内存”这个词条，那么分词器会将它拆分为 `["内", "存"]`。
-//! 在后续的转换步骤中，程序将无法看到完整的“內存”这个词组，因此 `TWPhrasesIT` 中的 `內存 -> 記憶體` 规则也就无法被匹配到。
 
 use crate::config::ConversionNodeConfig;
 use crate::dictionary::{DictType, Dictionary};
@@ -22,6 +12,16 @@ pub struct ConversionChain {
     /// 按顺序应用的词典列表
     dictionaries: Vec<Arc<dyn Dictionary>>,
 }
+
+// 为何不使用分词器?
+//
+// 考虑一个“简体 -> 台湾正体”的转换，其中包含地区用词的替换，例如将“内存”转换为“記憶體”。
+// `OpenCC` 的标准流程是：
+// 1.  用一个通用词典（如 `STCharacters`）进行初步简繁转换。在这个阶段，“内存”会变成“內存”。
+// 2.  用一个台湾地区用语词典（如 `TWPhrasesIT`）进行转换，它包含规则 `內存 -> 記憶體`。
+//
+// 如果先用 `STPhrases` 进行分词，而这个词典本身不包含“内存”这个词条，那么分词器会将它拆分为 `["内", "存"]`。
+// 在后续的转换步骤中，程序将无法看到完整的“內存”这个词组，因此 `TWPhrasesIT` 中的 `內存 -> 記憶體` 规则也就无法被匹配到。
 
 impl ConversionChain {
     /// 从文件加载配置来创建一个新的转换链
@@ -50,20 +50,20 @@ impl ConversionChain {
 
         // 将 Cow 传递给转换链中的每个词典
         for dict in &self.dictionaries {
-            current_cow = self.apply_dict(current_cow, dict.as_ref());
+            current_cow = Self::apply_dict(current_cow, dict.as_ref());
         }
 
         current_cow.into_owned()
     }
 
     /// 使用单个词典，通过贪婪替换策略对文本进行一次完整的转换
-    fn apply_dict<'a>(&self, text: Cow<'a, str>, dict: &dyn Dictionary) -> Cow<'a, str> {
+    fn apply_dict<'a>(text: Cow<'a, str>, dict: &dyn Dictionary) -> Cow<'a, str> {
         let mut result: Option<String> = None;
         let mut i = 0;
 
         while i < text.len() {
             let remaining_text = &text[i..];
-            if let Some((key, values)) = dict.match_prefix(remaining_text) {
+            if let Some((key, [values_0, ..])) = dict.match_prefix(remaining_text) {
                 // 找到了一个匹配
                 let res_str = result.get_or_insert_with(|| {
                     // 第一次进行更改时，分配结果字符串，并复制到已经跳过的原始字符串部分
@@ -73,7 +73,7 @@ impl ConversionChain {
                 });
 
                 // 追加转换后的值，总是选择第一个候选词
-                res_str.push_str(&values[0]);
+                res_str.push_str(values_0);
                 i += key.len();
             } else {
                 // 在这个位置没有找到匹配
@@ -146,17 +146,13 @@ mod tests {
         dict.add_entry("abc", "ABC");
         let dict_arc: Arc<dyn Dictionary> = Arc::new(dict);
 
-        let chain = ConversionChain {
-            dictionaries: vec![],
-        };
-
-        let result = chain.apply_dict(Cow::Borrowed("abcdef"), dict_arc.as_ref());
+        let result = ConversionChain::apply_dict(Cow::Borrowed("abcdef"), dict_arc.as_ref());
         assert_eq!(result, "ABCdef");
 
-        let result2 = chain.apply_dict(Cow::Borrowed("abac"), dict_arc.as_ref());
+        let result2 = ConversionChain::apply_dict(Cow::Borrowed("abac"), dict_arc.as_ref());
         assert_eq!(result2, "ABAc");
 
-        let result3 = chain.apply_dict(Cow::Borrowed("zyxw"), dict_arc.as_ref());
+        let result3 = ConversionChain::apply_dict(Cow::Borrowed("zyxw"), dict_arc.as_ref());
         assert_eq!(result3, "zyxw");
     }
 

@@ -18,10 +18,10 @@ pub struct Config {
 
     /// 配置文件所在的目录
     #[serde(skip)]
-    config_directory: PathBuf,
+    directory: PathBuf,
 }
 
-/// 所有内置的 OpenCC 配置
+/// 所有内置的 `OpenCC` 配置
 #[repr(i32)]
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -58,48 +58,50 @@ pub enum BuiltinConfig {
 
 impl BuiltinConfig {
     /// 将枚举成员转换为对应的文件名字符串
-    pub fn to_filename(&self) -> &'static str {
+    #[must_use]
+    pub const fn to_filename(&self) -> &'static str {
         match self {
-            BuiltinConfig::S2t => "s2t.json",
-            BuiltinConfig::T2s => "t2s.json",
-            BuiltinConfig::S2tw => "s2tw.json",
-            BuiltinConfig::Tw2s => "tw2s.json",
-            BuiltinConfig::S2hk => "s2hk.json",
-            BuiltinConfig::Hk2s => "hk2s.json",
-            BuiltinConfig::S2twp => "s2twp.json",
-            BuiltinConfig::Tw2sp => "tw2sp.json",
-            BuiltinConfig::T2tw => "t2tw.json",
-            BuiltinConfig::Tw2t => "tw2t.json",
-            BuiltinConfig::T2hk => "t2hk.json",
-            BuiltinConfig::Hk2t => "hk2t.json",
-            BuiltinConfig::Jp2t => "jp2t.json",
-            BuiltinConfig::T2jp => "t2jp.json",
+            Self::S2t => "s2t.json",
+            Self::T2s => "t2s.json",
+            Self::S2tw => "s2tw.json",
+            Self::Tw2s => "tw2s.json",
+            Self::S2hk => "s2hk.json",
+            Self::Hk2s => "hk2s.json",
+            Self::S2twp => "s2twp.json",
+            Self::Tw2sp => "tw2sp.json",
+            Self::T2tw => "t2tw.json",
+            Self::Tw2t => "tw2t.json",
+            Self::T2hk => "t2hk.json",
+            Self::Hk2t => "hk2t.json",
+            Self::Jp2t => "jp2t.json",
+            Self::T2jp => "t2jp.json",
         }
     }
 
     /// 从文件名字符串转换为对应的枚举成员
     pub fn from_filename(filename: &str) -> Result<Self> {
         match filename {
-            "s2t.json" => Ok(BuiltinConfig::S2t),
-            "t2s.json" => Ok(BuiltinConfig::T2s),
-            "s2tw.json" => Ok(BuiltinConfig::S2tw),
-            "tw2s.json" => Ok(BuiltinConfig::Tw2s),
-            "s2hk.json" => Ok(BuiltinConfig::S2hk),
-            "hk2s.json" => Ok(BuiltinConfig::Hk2s),
-            "s2twp.json" => Ok(BuiltinConfig::S2twp),
-            "tw2sp.json" => Ok(BuiltinConfig::Tw2sp),
-            "t2tw.json" => Ok(BuiltinConfig::T2tw),
-            "tw2t.json" => Ok(BuiltinConfig::Tw2t),
-            "t2hk.json" => Ok(BuiltinConfig::T2hk),
-            "hk2t.json" => Ok(BuiltinConfig::Hk2t),
-            "jp2t.json" => Ok(BuiltinConfig::Jp2t),
-            "t2jp.json" => Ok(BuiltinConfig::T2jp),
+            "s2t.json" => Ok(Self::S2t),
+            "t2s.json" => Ok(Self::T2s),
+            "s2tw.json" => Ok(Self::S2tw),
+            "tw2s.json" => Ok(Self::Tw2s),
+            "s2hk.json" => Ok(Self::S2hk),
+            "hk2s.json" => Ok(Self::Hk2s),
+            "s2twp.json" => Ok(Self::S2twp),
+            "tw2sp.json" => Ok(Self::Tw2sp),
+            "t2tw.json" => Ok(Self::T2tw),
+            "tw2t.json" => Ok(Self::Tw2t),
+            "t2hk.json" => Ok(Self::T2hk),
+            "hk2t.json" => Ok(Self::Hk2t),
+            "jp2t.json" => Ok(Self::Jp2t),
+            "t2jp.json" => Ok(Self::T2jp),
             _ => Err(OpenCCError::ConfigNotFound(filename.to_string())),
         }
     }
 }
 
 /// 转换链中的一个节点
+///
 /// 每个节点对应一个基于词典的转换步骤
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConversionNodeConfig {
@@ -126,17 +128,18 @@ impl Config {
         let file = File::open(path)
             .map_err(|e| OpenCCError::FileNotFound(format!("{}: {}", path.display(), e)))?;
         let reader = BufReader::new(file);
-        let mut config: Config = serde_json::from_reader(reader)?;
+        let mut config: Self = serde_json::from_reader(reader)?;
 
         // 保存配置文件的父目录
-        config.config_directory = path.parent().unwrap_or_else(|| Path::new("")).to_path_buf();
+        config.directory = path.parent().unwrap_or_else(|| Path::new("")).to_path_buf();
 
         Ok(config)
     }
 
     /// 获取配置文件所在的目录
+    #[must_use]
     pub fn get_config_directory(&self) -> &Path {
-        &self.config_directory
+        &self.directory
     }
 }
 
@@ -144,7 +147,7 @@ impl FromStr for Config {
     type Err = OpenCCError;
 
     fn from_str(s: &str) -> Result<Self> {
-        let config: Config = serde_json::from_str(s)?;
+        let config: Self = serde_json::from_str(s)?;
         Ok(config)
     }
 }
