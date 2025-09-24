@@ -22,10 +22,10 @@ fn main() -> anyhow::Result<()> {
     );
 
     let dict = FstDict::from_text(&args.input)
-        .map_err(|e| anyhow::anyhow!("Failed to load text dictionary: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to load text dictionary: {e}"))?;
 
     dict.serialize_to_file(&args.output)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize binary dictionary: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to serialize binary dictionary: {e}"))?;
 
     println!("Compilation successful.");
 

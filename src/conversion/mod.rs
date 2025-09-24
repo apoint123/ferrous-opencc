@@ -63,32 +63,26 @@ impl ConversionChain {
 
         while i < text.len() {
             let remaining_text = &text[i..];
-            if let Some((key, [values_0, ..])) = dict.match_prefix(remaining_text) {
-                // 找到了一个匹配
-                let res_str = result.get_or_insert_with(|| {
-                    // 第一次进行更改时，分配结果字符串，并复制到已经跳过的原始字符串部分
-                    let mut new_string = String::with_capacity(text.len());
-                    new_string.push_str(&text[..i]);
-                    new_string
-                });
+            if let Some((key, values)) = dict.match_prefix(remaining_text) {
+                if let Some(values_0) = values.first() {
+                    // 找到了一个匹配
+                    let res_str = result.get_or_insert_with(|| {
+                        // 第一次进行更改时，分配结果字符串，并复制到已经跳过的原始字符串部分
+                        let mut new_string = String::with_capacity(text.len());
+                        new_string.push_str(&text[..i]);
+                        new_string
+                    });
 
-                // 追加转换后的值，总是选择第一个候选词
-                res_str.push_str(values_0);
-                i += key.len();
+                    // 追加转换后的值，总是选择第一个候选词
+                    res_str.push_str(values_0);
+                    i += key.len();
+                } else {
+                    // 匹配到了，但 values 为空，当作没有匹配处理
+                    i = advance_char(i, remaining_text, result.as_mut());
+                }
             } else {
                 // 在这个位置没有找到匹配
-                if let Some(ch) = remaining_text.chars().next() {
-                    if let Some(res_str) = result.as_mut() {
-                        // 如果已经在构建一个字符串，追加这个字符
-                        res_str.push(ch);
-                    }
-                    // 如果没有在构建字符串（result 是 None），我们什么也不做
-                    // 因为我们仍然有效地“借用”着原始的切片
-                    i += ch.len_utf8();
-                } else {
-                    // 此处理论上不可达，因为有 while i < text.len()
-                    break;
-                }
+                i = advance_char(i, remaining_text, result.as_mut());
             }
         }
 
@@ -96,6 +90,18 @@ impl ConversionChain {
         // 我们可以返回原始的、借用的字符串切片。否则，我们返回新创建的 `String`
         result.map(Cow::Owned).unwrap_or(text)
     }
+}
+
+fn advance_char(mut i: usize, remaining_text: &str, result: Option<&mut String>) -> usize {
+    if let Some(ch) = remaining_text.chars().next() {
+        if let Some(res_str) = result {
+            res_str.push(ch);
+        }
+        i += ch.len_utf8();
+    } else {
+        i = remaining_text.len() + 1;
+    }
+    i
 }
 
 #[cfg(test)]
@@ -119,15 +125,19 @@ mod tests {
     }
 
     impl Dictionary for MockDict {
-        fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a [Arc<str>])> {
+        fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, Vec<String>)> {
             let mut longest_match_len = 0;
-            let mut result: Option<(&'b str, &'a [Arc<str>])> = None;
+            let mut result: Option<(&'b str, Vec<String>)> = None;
 
             // 测试中就简单实现了
             for (key, values) in &self.entries {
                 if word.starts_with(key) && key.len() > longest_match_len {
                     longest_match_len = key.len();
-                    result = Some((&word[..key.len()], values.as_slice()));
+                    let string_values = values
+                        .iter()
+                        .map(std::string::ToString::to_string)
+                        .collect();
+                    result = Some((&word[..key.len()], string_values));
                 }
             }
             result

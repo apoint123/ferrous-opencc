@@ -5,9 +5,6 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-#[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
-
 /// 顶层的 JSON 配置结构
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
@@ -23,36 +20,49 @@ pub struct Config {
 
 /// 所有内置的 `OpenCC` 配置
 #[repr(i32)]
-#[cfg_attr(feature = "wasm", wasm_bindgen)]
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinConfig {
     /// 简体到繁体
+    #[cfg(feature = "s2t-conversion")]
     S2t = 0,
     /// 繁体到简体
+    #[cfg(feature = "t2s-conversion")]
     T2s = 1,
     /// 简体到台湾正体
+    #[cfg(feature = "s2t-conversion")]
     S2tw = 2,
     /// 台湾正体到简体
+    #[cfg(feature = "t2s-conversion")]
     Tw2s = 3,
     /// 简体到香港繁体
+    #[cfg(feature = "s2t-conversion")]
     S2hk = 4,
     /// 香港繁体到简体
+    #[cfg(feature = "t2s-conversion")]
     Hk2s = 5,
     /// 简体到台湾正体（包含词汇转换）
+    #[cfg(feature = "s2t-conversion")]
     S2twp = 6,
     /// 台湾正体（包含词汇转换）到简体
+    #[cfg(feature = "t2s-conversion")]
     Tw2sp = 7,
     /// 繁体到台湾正体
+    #[cfg(feature = "t2s-conversion")]
     T2tw = 8,
     /// 台湾正体到繁体
+    #[cfg(feature = "s2t-conversion")]
     Tw2t = 9,
     /// 繁体到香港繁体
+    #[cfg(feature = "s2t-conversion")]
     T2hk = 10,
     /// 香港繁体到繁体
+    #[cfg(feature = "t2s-conversion")]
     Hk2t = 11,
     /// 日语新字体到繁体
+    #[cfg(feature = "japanese-conversion")]
     Jp2t = 12,
     /// 繁体到日语新字体
+    #[cfg(feature = "japanese-conversion")]
     T2jp = 13,
 }
 
@@ -61,19 +71,33 @@ impl BuiltinConfig {
     #[must_use]
     pub const fn to_filename(&self) -> &'static str {
         match self {
+            #[cfg(feature = "s2t-conversion")]
             Self::S2t => "s2t.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::T2s => "t2s.json",
+            #[cfg(feature = "s2t-conversion")]
             Self::S2tw => "s2tw.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::Tw2s => "tw2s.json",
+            #[cfg(feature = "s2t-conversion")]
             Self::S2hk => "s2hk.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::Hk2s => "hk2s.json",
+            #[cfg(feature = "s2t-conversion")]
             Self::S2twp => "s2twp.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::Tw2sp => "tw2sp.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::T2tw => "t2tw.json",
+            #[cfg(feature = "s2t-conversion")]
             Self::Tw2t => "tw2t.json",
+            #[cfg(feature = "s2t-conversion")]
             Self::T2hk => "t2hk.json",
+            #[cfg(feature = "t2s-conversion")]
             Self::Hk2t => "hk2t.json",
+            #[cfg(feature = "japanese-conversion")]
             Self::Jp2t => "jp2t.json",
+            #[cfg(feature = "japanese-conversion")]
             Self::T2jp => "t2jp.json",
         }
     }
@@ -81,19 +105,33 @@ impl BuiltinConfig {
     /// 从文件名字符串转换为对应的枚举成员
     pub fn from_filename(filename: &str) -> Result<Self> {
         match filename {
+            #[cfg(feature = "s2t-conversion")]
             "s2t.json" => Ok(Self::S2t),
+            #[cfg(feature = "t2s-conversion")]
             "t2s.json" => Ok(Self::T2s),
+            #[cfg(feature = "s2t-conversion")]
             "s2tw.json" => Ok(Self::S2tw),
+            #[cfg(feature = "t2s-conversion")]
             "tw2s.json" => Ok(Self::Tw2s),
+            #[cfg(feature = "s2t-conversion")]
             "s2hk.json" => Ok(Self::S2hk),
+            #[cfg(feature = "t2s-conversion")]
             "hk2s.json" => Ok(Self::Hk2s),
+            #[cfg(feature = "s2t-conversion")]
             "s2twp.json" => Ok(Self::S2twp),
+            #[cfg(feature = "t2s-conversion")]
             "tw2sp.json" => Ok(Self::Tw2sp),
+            #[cfg(feature = "t2s-conversion")]
             "t2tw.json" => Ok(Self::T2tw),
+            #[cfg(feature = "s2t-conversion")]
             "tw2t.json" => Ok(Self::Tw2t),
+            #[cfg(feature = "s2t-conversion")]
             "t2hk.json" => Ok(Self::T2hk),
+            #[cfg(feature = "t2s-conversion")]
             "hk2t.json" => Ok(Self::Hk2t),
+            #[cfg(feature = "japanese-conversion")]
             "jp2t.json" => Ok(Self::Jp2t),
+            #[cfg(feature = "japanese-conversion")]
             "t2jp.json" => Ok(Self::T2jp),
             _ => Err(OpenCCError::ConfigNotFound(filename.to_string())),
         }

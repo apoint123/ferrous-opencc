@@ -38,7 +38,7 @@ impl Dictionary for DictGroup {
     /// 通过查询所有子词典来查找最长的前缀匹配。
     /// 该方法会遍历组内的所有词典，对每一个都执行前缀匹配，
     /// 然后从所有结果中返回拥有最长键的那一个。
-    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a [Arc<str>])> {
+    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)> {
         // 1. 遍历所有子词典，并对每个词典进行前缀匹配
         //    使用 `filter_map` 收集所有有效的匹配结果
         // 2. 使用 `max_by_key`，根据匹配到的键的长度，从所有结果中找出最长的那一个

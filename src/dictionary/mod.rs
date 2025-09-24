@@ -22,7 +22,7 @@ pub(super) trait Dictionary: Send + Sync + Debug {
     /// # 返回
     ///
     /// 如果找到匹配，返回一个包含 `(匹配到的键, 匹配到的值列表)` 的元组
-    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a [Arc<str>])>;
+    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)>;
 
     /// 返回词典中的最长键长度，可用于分词算法的优化
     fn max_key_length(&self) -> usize;

@@ -10,23 +10,6 @@ homepage = "https://github.com/apoint123/ferrous-opencc"
 keywords = ["opencc", "chinese", "pure-rust", "traditional", "simplified"]
 categories = ["text-processing", "localization"]
 
-[dependencies]
-bincode = { version = "2", features = ["derive"] }
-fst = "0"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tempfile = "3"
-thiserror = "2"
-anyhow = "1"
-clap = { version = "4", features = ["derive"] }
-phf = { version = "0", features = ["macros"] }
-ferrous-opencc-compiler = "0.1"
-wasm-bindgen = { version = "0.2", optional = true }
-
-[features]
-default = []
-wasm = ["wasm-bindgen"]
-
 [lib]
 name = "ferrous_opencc"
 crate-type = ["cdylib", "rlib"]
@@ -34,13 +17,46 @@ crate-type = ["cdylib", "rlib"]
 [[bin]]
 name = "opencc-dict-compiler"
 path = "src/bin/dict-compiler.rs"
+required-features = ["cli"]
+
+[dependencies]
+anyhow = "1.0"
+bincode = { version = "2.0", features = ["derive"] }
+ferrous-opencc-compiler = "0.1"
+fst = "0.4"
+phf = { version = "0.13", features = ["macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+zstd = "0.13"
+
+wasm-bindgen = { version = "0.2", optional = true }
 
 [build-dependencies]
-anyhow = "1"
-phf_codegen = "0"
-ferrous-opencc-compiler = "0.1"
+anyhow = "1.0"
 cbindgen = "0.29"
-wasm-bindgen-test = "0.3"
+ferrous-opencc-compiler = "0.1"
+phf_codegen = "0.13"
+
+[dev-dependencies]
+clap = { version = "4.5", features = ["derive"] }
+tempfile = "3.23"
+
+[features]
+default = ["s2t-conversion", "t2s-conversion"]
+
+s2t-conversion = []
+t2s-conversion = []
+japanese-conversion = []
+
+cli = []
+
+wasm = ["dep:wasm-bindgen", "s2t-conversion", "t2s-conversion"]
+
+full = ["s2t-conversion", "t2s-conversion", "japanese-conversion"]
+
+[patch.crates-io]
+ferrous-opencc-compiler = { path = "ferrous-opencc-compiler" }
 
 [profile.release]
 opt-level = 3

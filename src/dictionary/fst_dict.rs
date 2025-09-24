@@ -4,13 +4,12 @@
 
 use crate::dictionary::Dictionary;
 use crate::error::Result;
-use bincode::{Decode, Encode, config};
-use ferrous_opencc_compiler::compile_dictionary;
+use bincode::config;
+use ferrous_opencc_compiler::{Delta, SerializableFstDict, compile_dictionary};
 use fst::Map;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::path::Path;
-use std::sync::Arc;
 
 /// 一个使用 FST 实现的词典。
 /// 包含用于快速查询的 FST 映射、存储实际字符串值的向量，
@@ -19,17 +18,25 @@ use std::sync::Arc;
 pub struct FstDict {
     /// FST 映射，将键映射到 `values` 向量中的索引
     map: Map<Vec<u8>>,
-    /// 包含词典中所有不重复的值的向量
-    values: Vec<Vec<Arc<str>>>,
+    /// 一个存储差异信息的列表
+    values: Vec<Vec<Delta>>,
     /// 词典中最长键的长度
     max_key_length: usize,
 }
 
-/// 用于序列化词典中非 FST 部分的辅助结构体
-#[derive(Encode, Decode)]
-struct SerializableFstDict {
-    values: Vec<Vec<Arc<str>>>,
-    max_key_length: usize,
+fn apply_delta(key: &str, delta: &Delta) -> String {
+    match delta {
+        Delta::FullReplacement(s) => s.to_string(),
+        Delta::CharDiffs(diffs) => {
+            let mut chars: Vec<char> = key.chars().collect();
+            for &(index, new_char) in diffs {
+                if let Some(c) = chars.get_mut(index as usize) {
+                    *c = new_char;
+                }
+            }
+            chars.into_iter().collect()
+        }
+    }
 }
 
 impl FstDict {
@@ -74,8 +81,11 @@ impl FstDict {
 
     /// 序列化词典
     pub fn serialize_to_file(&self, path: &Path) -> Result<()> {
+        let values_bytes = bincode::encode_to_vec(&self.values, config::standard())?;
+        let compressed_values = zstd::encode_all(&values_bytes[..], 0)?;
+
         let metadata = SerializableFstDict {
-            values: self.values.clone(),
+            compressed_values,
             max_key_length: self.max_key_length,
         };
         let metadata_bytes = bincode::encode_to_vec(&metadata, config::standard())?;
@@ -113,6 +123,10 @@ impl FstDict {
         let (metadata, _): (SerializableFstDict, usize) =
             bincode::decode_from_slice(&metadata_bytes, config::standard())?;
 
+        let values_bytes = zstd::decode_all(&metadata.compressed_values[..])?;
+        let (values, _): (Vec<Vec<Delta>>, usize) =
+            bincode::decode_from_slice(&values_bytes, config::standard())?;
+
         let mut fst_bytes = Vec::new();
         reader.read_to_end(&mut fst_bytes)?;
 
@@ -120,7 +134,7 @@ impl FstDict {
 
         Ok(Self {
             map,
-            values: metadata.values,
+            values,
             max_key_length: metadata.max_key_length,
         })
     }
@@ -128,7 +142,7 @@ impl FstDict {
 
 impl Dictionary for FstDict {
     /// 查找输入字符串在词典中的最长前缀匹配
-    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a [Arc<str>])> {
+    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)> {
         let fst = self.map.as_fst();
         let mut node = fst.root();
 
@@ -161,13 +175,13 @@ impl Dictionary for FstDict {
             }
         }
 
-        // 循环结束后，`last_match` 中就保存了最长的前缀匹配信息
-        if let Some((len, value_index)) = last_match {
-            // 使用计算出的索引来获取值
-            if let Some(values) = self.values.get(value_index as usize) {
-                let key = &word[..len];
-                return Some((key, values.as_slice()));
-            }
+        if let Some((len, value_index)) = last_match
+            && let Some(deltas) = self.values.get(value_index as usize)
+        {
+            let key = &word[..len];
+            let result_values: Vec<String> =
+                deltas.iter().map(|delta| apply_delta(key, delta)).collect();
+            return Some((key, result_values));
         }
 
         None

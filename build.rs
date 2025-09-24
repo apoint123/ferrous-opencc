@@ -22,21 +22,38 @@ fn run() -> Result<()> {
     let mut dicts_to_add: Vec<(String, String)> = Vec::new();
 
     if dict_dir.exists() {
+        let s2t = env::var("CARGO_FEATURE_S2T_CONVERSION").is_ok();
+        let t2s = env::var("CARGO_FEATURE_T2S_CONVERSION").is_ok();
+        let japanese = env::var("CARGO_FEATURE_JAPANESE_CONVERSION").is_ok();
+
         for entry in fs::read_dir(&dict_dir)? {
             let entry = entry?;
             let path = entry.path();
             if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
                 let file_stem = path.file_stem().unwrap().to_str().unwrap();
-                let ocd2_key_name = format!("{file_stem}.ocd2");
-                let ocb_file_name = format!("{file_stem}.ocb");
-                let ocb_path = dest_path.join(&ocb_file_name);
-                let ocb_bytes = compile_dictionary(&path)?;
-                fs::write(&ocb_path, ocb_bytes)?;
-                let ocb_path_str = ocb_path.to_str().unwrap().replace('\\', "/");
 
-                let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
+                let should_include = match file_stem {
+                    "STCharacters" | "TSCharacters" => s2t || t2s,
+                    "STPhrases" | "HKVariants" | "TWPhrasesIT" | "TWPhrasesName"
+                    | "TWPhrasesOther" | "TWVariants" => s2t,
+                    "TSPhrases" | "HKVariantsRevPhrases" | "TWVariantsRevPhrases" => t2s,
+                    s if s.starts_with("JP") => japanese,
+                    _ => false,
+                };
 
-                dicts_to_add.push((ocd2_key_name, value_code));
+                if should_include {
+                    let ocd2_key_name = format!("{file_stem}.ocd2");
+                    let ocb_file_name = format!("{file_stem}.ocb");
+                    let ocb_path = dest_path.join(&ocb_file_name);
+
+                    let ocb_bytes = compile_dictionary(&path)?;
+                    fs::write(&ocb_path, &ocb_bytes)?;
+                    let ocb_path_str = ocb_path.to_str().unwrap().replace('\\', "/");
+
+                    let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
+
+                    dicts_to_add.push((ocd2_key_name, value_code));
+                }
             }
         }
     }

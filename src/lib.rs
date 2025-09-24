@@ -126,18 +126,18 @@ impl OpenCC {
 impl OpenCC {
     /// 创建一个新的 `OpenCC` 实例。
     ///
-    /// @param {`BuiltinConfig`} `config` - 要使用的内置配置枚举。
-    /// @returns {`Promise<OpenCC>`} - 一个 `Promise`，成功时解析为 `OpenCC` 实例。
+    /// @param {`string`} `config_name` - 要使用的内置配置名称, 例如 "s2t.json"。
+    /// @returns {`OpenCC`} - 一个 `OpenCC` 实例。
     /// @throws {`JsValue`} - 如果配置加载失败，则抛出一个错误对象。
     ///
     /// @example
     /// ```javascript
-    /// import init, { OpenCC, BuiltinConfig } from './pkg/ferrous_opencc.js';
+    /// import init, { OpenCC } from './pkg/ferrous_opencc.js';
     ///
     /// async function main() {
     ///   await init();
     ///   try {
-    ///     const converter = new OpenCC(BuiltinConfig.S2t);
+    ///     const converter = new OpenCC("s2t.json");
     ///     console.log('加载成功:', converter.name);
     ///   } catch (err) {
     ///     console.error('加载失败:', err);
@@ -146,8 +146,10 @@ impl OpenCC {
     /// main();
     /// ```
     #[wasm_bindgen(constructor)]
-    pub fn new_wasm(config: BuiltinConfig) -> std::result::Result<Self, JsValue> {
-        Self::from_config(config).map_err(|e| JsValue::from_str(&e.to_string()))
+    pub fn new_wasm(config_name: &str) -> std::result::Result<Self, JsValue> {
+        let config_enum = BuiltinConfig::from_filename(config_name)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?;
+        Self::from_config(config_enum).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
     /// 根据加载的配置转换字符串。
