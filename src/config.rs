@@ -156,7 +156,7 @@ pub struct DictConfig {
     /// 词典文件名 (用于 `type: "text"`)
     pub file: Option<String>,
     /// 子词典列表 (用于 `type: "group"`)。
-    pub dicts: Option<Vec<DictConfig>>,
+    pub dicts: Option<Vec<Self>>,
 }
 
 impl Config {
