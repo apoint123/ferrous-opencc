@@ -12,7 +12,7 @@ categories = ["text-processing", "localization"]
 
 [lib]
 name = "ferrous_opencc"
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib", "rlib", "staticlib"]
 
 [[bin]]
 name = "opencc-dict-compiler"
