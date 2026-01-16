@@ -37,8 +37,6 @@ use std::path::Path;
 
 use crate::{config::BuiltinConfig, dictionary::embedded};
 
-include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
-
 /// 核心的 `OpenCC` 转换器
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct OpenCC {
