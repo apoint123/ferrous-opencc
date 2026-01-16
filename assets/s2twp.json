@@ -25,21 +25,8 @@
 		},
 		{
 			"dict": {
-				"type": "group",
-				"dicts": [
-					{
-						"type": "ocd2",
-						"file": "TWPhrasesIT.ocd2"
-					},
-					{
-						"type": "ocd2",
-						"file": "TWPhrasesName.ocd2"
-					},
-					{
-						"type": "ocd2",
-						"file": "TWPhrasesOther.ocd2"
-					}
-				]
+				"type": "ocd2",
+				"file": "TWPhrases.ocd2"
 			}
 		},
 		{

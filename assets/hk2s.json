@@ -10,8 +10,17 @@
 	"conversion_chain": [
 		{
 			"dict": {
-				"type": "ocd2",
-				"file": "HKVariantsRevPhrases.ocd2"
+				"type": "group",
+				"dicts": [
+					{
+						"type": "ocd2",
+						"file": "HKVariantsRevPhrases.ocd2"
+					},
+					{
+						"type": "ocd2",
+						"file": "HKVariantsRev.ocd2"
+					}
+				]
 			}
 		},
 		{
