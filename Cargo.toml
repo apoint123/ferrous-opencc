@@ -1,6 +1,6 @@
 [package]
 name = "ferrous-opencc"
-version = "0.2.3"
+version = "0.3.0"
 edition = "2024"
 authors = ["apoint123 <vpnzaph@outlook.com>"]
 description = "A pure Rust implementation of Open Chinese Convert (OpenCC), for fast and reliable conversion between Traditional and Simplified Chinese."
@@ -22,7 +22,7 @@ required-features = ["cli"]
 [dependencies]
 anyhow = "1.0"
 bincode = { version = "2.0", features = ["derive"] }
-ferrous-opencc-compiler = "0.1"
+ferrous-opencc-compiler = "0.3"
 fst = "0.4"
 phf = { version = "0.13", features = ["macros"] }
 serde = { version = "1", features = ["derive"] }
@@ -36,7 +36,7 @@ wasm-bindgen = { version = "0.2", optional = true }
 [build-dependencies]
 anyhow = "1.0"
 cbindgen = "0.29"
-ferrous-opencc-compiler = "0.1"
+ferrous-opencc-compiler = "0.3"
 phf_codegen = "0.13"
 
 [dev-dependencies]
