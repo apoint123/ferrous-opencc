@@ -34,9 +34,13 @@ fn run() -> Result<()> {
 
                 let should_include = match file_stem {
                     "STCharacters" | "TSCharacters" => s2t || t2s,
-                    "STPhrases" | "HKVariants" | "TWPhrasesIT" | "TWPhrasesName"
-                    | "TWPhrasesOther" | "TWVariants" => s2t,
-                    "TSPhrases" | "HKVariantsRevPhrases" | "TWVariantsRevPhrases" => t2s,
+                    "STPhrases" | "HKVariants" | "TWPhrases" | "TWVariants" => s2t,
+                    "TSPhrases"
+                    | "HKVariantsRev"
+                    | "HKVariantsRevPhrases"
+                    | "TWPhrasesRev"
+                    | "TWVariantsRev"
+                    | "TWVariantsRevPhrases" => t2s,
                     s if s.starts_with("JP") => japanese,
                     _ => false,
                 };
