@@ -40,6 +40,9 @@ ferrous-opencc-compiler = "0.3"
 phf_codegen = "0.13"
 
 [dev-dependencies]
+glob = "0.3.3"
+insta = { version = "1.46.1", features = ["yaml"] }
+rand = "0.9.2"
 tempfile = "3.23"
 
 [features]
