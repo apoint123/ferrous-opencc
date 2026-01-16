@@ -7,6 +7,20 @@
 #include <ostream>
 #include <new>
 
+/// FFI 函数的通用返回码。
+enum class OpenCCResult : int32_t {
+  /// 操作成功。
+  Success = 0,
+  /// 传入的句柄无效。
+  InvalidHandle = 1,
+  /// 传入的参数无效。
+  InvalidArgument = 2,
+  /// `OpenCC` 实例创建失败（找不到配置文件之类的）。
+  CreationFailed = 3,
+  /// 发生了一个未预料的错误（通常是 `panic`）。
+  InternalError = 4,
+};
+
 /// 所有内置的 `OpenCC` 配置
 enum class BuiltinConfig : int32_t {
   /// 简体到繁体
@@ -37,20 +51,6 @@ enum class BuiltinConfig : int32_t {
   Jp2t = 12,
   /// 繁体到日语新字体
   T2jp = 13,
-};
-
-/// FFI 函数的通用返回码。
-enum class OpenCCResult : int32_t {
-  /// 操作成功。
-  Success = 0,
-  /// 传入的句柄无效。
-  InvalidHandle = 1,
-  /// 传入的参数无效。
-  InvalidArgument = 2,
-  /// `OpenCC` 实例创建失败（找不到配置文件之类的）。
-  CreationFailed = 3,
-  /// 发生了一个未预料的错误（通常是 `panic`）。
-  InternalError = 4,
 };
 
 /// `OpenCC` 的不透明句柄。
