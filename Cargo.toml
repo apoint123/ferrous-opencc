@@ -35,7 +35,6 @@ wasm-bindgen = { version = "0.2", optional = true }
 
 [build-dependencies]
 anyhow = "1.0"
-cbindgen = "0.29"
 ferrous-opencc-compiler = "0.3"
 phf_codegen = "0.13"
 tempfile = "3.23"

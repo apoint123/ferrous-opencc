@@ -108,12 +108,13 @@ fn run() -> Result<()> {
         config_map_builder.build()
     )?;
 
-    cbindgen::Builder::new()
-        .with_crate(manifest_dir)
-        .with_config(cbindgen::Config::from_file("cbindgen.toml").unwrap())
-        .generate()
-        .expect("Unable to generate bindings")
-        .write_to_file("opencc.h");
+    // 诸如 nix 的构建环境很难跑起来 cbindgen，暂时注释，要改 ffi 绑定的时候再启用
+    // cbindgen::Builder::new()
+    //     .with_crate(manifest_dir)
+    //     .with_config(cbindgen::Config::from_file("cbindgen.toml").unwrap())
+    //     .generate()
+    //     .expect("Unable to generate bindings")
+    //     .write_to_file("opencc.h");
 
     Ok(())
 }
