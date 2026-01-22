@@ -60,7 +60,13 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
 
     for line in reader.lines() {
         let line = line.with_context(|| "Failed to read line from dictionary")?;
+
+        let trimmed_line = line.trim();
+        if trimmed_line.is_empty() || trimmed_line.starts_with('#') {
+            continue;
+        }
         let parts: Vec<&str> = line.split('\t').collect();
+
         if parts.len() == 2 {
             let key = parts[0];
             let values: Vec<&str> = parts[1].split(' ').collect();

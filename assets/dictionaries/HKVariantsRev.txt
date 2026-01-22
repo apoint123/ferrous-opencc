@@ -1,3 +1,10 @@
+# Open Chinese Convert (OpenCC) Dictionary
+# File: HKVariantsRev.txt
+# Format: key	value(s) (values separated by spaces)
+# License: Apache-2.0 (see LICENSE)
+# Source: https://github.com/ByVoid/OpenCC
+# Used in configs: hk2s.json, hk2t.json
+
 偽	僞
 兑	兌
 卧	臥

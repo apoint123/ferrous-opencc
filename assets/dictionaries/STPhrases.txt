@@ -1,3 +1,10 @@
+# Open Chinese Convert (OpenCC) Dictionary
+# File: STPhrases.txt
+# Format: key	value(s) (values separated by spaces)
+# License: Apache-2.0 (see LICENSE)
+# Source: https://github.com/ByVoid/OpenCC
+# Used in configs: s2hk.json, s2t.json, s2tw.json, s2twp.json
+
 㓦划	㓦劃
 一丝不挂	一絲不掛
 一了心愿	一了心願
@@ -5067,6 +5074,7 @@
 元恶	元惡
 元恶大奸	元惡大奸
 元恶大憝	元惡大憝
+元数据	元數據
 元曲	元曲
 元曲四大家	元曲四大家
 元秋	元秋
@@ -48466,6 +48474,7 @@
 马里克	馬里克
 马里兰	馬里蘭
 马里兰州	馬里蘭州
+马里共和国	馬里共和國
 马里内斯科	馬里內斯科
 马里奇	馬里奇
 马里奥	馬里奧
