@@ -1,11 +1,21 @@
-use anyhow::{Context, Result};
-use std::env;
-use std::fs;
-use std::fs::File;
-use std::io::BufWriter;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::{
+    env,
+    fs,
+    fs::File,
+    io::{
+        BufWriter,
+        Write,
+    },
+    path::{
+        Path,
+        PathBuf,
+    },
+};
 
+use anyhow::{
+    Context,
+    Result,
+};
 use ferrous_opencc_compiler::compile_dictionary;
 
 fn run() -> Result<()> {

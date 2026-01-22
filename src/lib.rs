@@ -1,17 +1,17 @@
-//! # 纯 Rust 实现的 `OpenCC`
+//! # Pure Rust implementation of `OpenCC`
 //!
-//! 为繁体中文和简体中文之间提供高性能的转换。
+//! Provides high-performance conversion between Traditional Chinese and Simplified Chinese.
 //!
-//! ## 示例
+//! ## Examples
 //!
 //! ```
 //! use ferrous_opencc::OpenCC;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! // 创建 OpenCC 实例
+//! // Create OpenCC instance
 //! let opencc = OpenCC::from_config(ferrous_opencc::config::BuiltinConfig::S2t)?;
 //!
-//! // 转换文本
+//! // Convert text
 //! let text = "开放中文转换是完全由 Rust 实现的。";
 //! let converted = opencc.convert(text);
 //!
@@ -21,48 +21,50 @@
 //! ```
 
 pub mod config;
-pub mod conversion;
-pub mod dictionary;
+mod conversion;
+mod dictionary;
 pub mod error;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;
 
-#[cfg(feature = "wasm")]
-use wasm_bindgen::prelude::*;
+use std::path::Path;
 
 use config::Config;
 use conversion::ConversionChain;
 use error::Result;
-use std::path::Path;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
 
-use crate::{config::BuiltinConfig, dictionary::embedded};
+use crate::{
+    config::BuiltinConfig,
+    dictionary::embedded,
+};
 
-/// 核心的 `OpenCC` 转换器
+/// The core `OpenCC` converter
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct OpenCC {
-    /// 配置名称
+    /// Configuration name
     name: String,
-    /// 用于执行转换的词典链
+    /// The dictionary chain used for conversion
     conversion_chain: ConversionChain,
 }
 
 impl OpenCC {
-    /// 从配置文件创建一个新的 `OpenCC` 实例。
-    /// 解析 JSON 配置文件，加载所有必需的词典，并构建转换流程。
+    /// Creates a new `OpenCC` instance from a configuration file.
+    /// Parses the JSON configuration file, loads all required dictionaries, and builds the
+    /// conversion chain.
     ///
-    /// # 参数
+    /// # Arguments
     ///
-    /// * `config_path`: 指向主 JSON 配置文件（例如 `s2t.json`）的路径
+    /// * `config_path`: Path to the main JSON configuration file (e.g., `s2t.json`)
     ///
-    /// # 返回
+    /// # Returns
     ///
-    /// 一个 `Result`，其中包含新的 `OpenCC` 实例，或者在加载失败时返回错误
+    /// A `Result` containing the new `OpenCC` instance, or an error if loading fails
     pub fn new<P: AsRef<Path>>(config_path: P) -> Result<Self> {
-        // 1. 解析配置文件
         let config = Config::from_file(config_path)?;
         let config_dir = config.get_config_directory();
 
-        // 2. 初始化转换链
         let conversion_chain = ConversionChain::from_config(&config.conversion_chain, config_dir)?;
 
         Ok(Self {
@@ -71,11 +73,15 @@ impl OpenCC {
         })
     }
 
-    /// 从内置的配置创建 `OpenCC` 实例。
+    /// Creates an `OpenCC` instance from a built-in configuration.
     ///
-    /// # 示例
+    /// # Example
     /// ```
-    /// use ferrous_opencc::{OpenCC, config::BuiltinConfig, error::Result};
+    /// use ferrous_opencc::{
+    ///     OpenCC,
+    ///     config::BuiltinConfig,
+    ///     error::Result,
+    /// };
     ///
     /// fn main() -> Result<()> {
     ///     let opencc = OpenCC::from_config(BuiltinConfig::S2t)?;
@@ -98,21 +104,21 @@ impl OpenCC {
         })
     }
 
-    /// 根据加载的配置转换字符串
+    /// Converts a string according to the loaded configuration.
     ///
-    /// # 参数
+    /// # Arguments
     ///
-    /// * `input`: 需要转换的字符串
+    /// * `input`: The string to convert
     ///
-    /// # 返回
+    /// # Returns
     ///
-    /// 转换后的字符串
+    /// The converted string
     #[must_use]
     pub fn convert(&self, input: &str) -> String {
         self.conversion_chain.convert(input)
     }
 
-    /// 返回当前加载的配置名称
+    /// Returns the name of the currently loaded configuration
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
@@ -122,11 +128,11 @@ impl OpenCC {
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
 impl OpenCC {
-    /// 创建一个新的 `OpenCC` 实例。
+    /// Creates a new `OpenCC` instance.
     ///
-    /// @param {`string`} `config_name` - 要使用的内置配置名称, 例如 "s2t.json"。
-    /// @returns {`OpenCC`} - 一个 `OpenCC` 实例。
-    /// @throws {`JsValue`} - 如果配置加载失败，则抛出一个错误对象。
+    /// @param {`string`} `config_name` - The name of the built-in configuration to use, e.g.,
+    /// "s2t.json". @returns {`OpenCC`} - An `OpenCC` instance.
+    /// @throws {`JsValue`} - Throws an error object if configuration loading fails.
     ///
     /// @example
     /// ```javascript
@@ -136,9 +142,9 @@ impl OpenCC {
     ///   await init();
     ///   try {
     ///     const converter = new OpenCC("s2t.json");
-    ///     console.log('加载成功:', converter.name);
+    ///     console.log('Load success:', converter.name);
     ///   } catch (err) {
-    ///     console.error('加载失败:', err);
+    ///     console.error('Load failed:', err);
     ///   }
     /// }
     /// main();
@@ -150,15 +156,15 @@ impl OpenCC {
         Self::from_config(config_enum).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
-    /// 根据加载的配置转换字符串。
+    /// Converts a string according to the loaded configuration.
     ///
-    /// @param {string} input - 需要转换的字符串。
-    /// @returns {string} - 转换后的字符串。
+    /// @param {string} input - The string to convert.
+    /// @returns {string} - The converted string.
     ///
     /// @example
     /// ```javascript
     /// const traditionalText = converter.convert("开放中文转换");
-    /// console.log(traditionalText); // 预期: 開放中文轉換
+    /// console.log(traditionalText); // Expected: 開放中文轉換
     /// ```
     #[wasm_bindgen(js_name = convert)]
     #[must_use]
@@ -166,9 +172,9 @@ impl OpenCC {
         self.convert(input)
     }
 
-    /// 获取当前加载的配置的名称。
+    /// Gets the name of the currently loaded configuration.
     ///
-    /// @returns {string} - 配置的名称。
+    /// @returns {string} - The name of the configuration.
     ///
     /// @example
     /// ```javascript

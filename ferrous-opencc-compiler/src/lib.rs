@@ -19,9 +19,7 @@ pub struct SerializableOptimizedValues {
 
 #[derive(Encode, Decode, Debug)]
 pub enum Delta {
-    /// 存储字符级别的差异 (索引, 新字符)
     CharDiffs(Vec<(u16, char)>),
-    /// 差异过大时，直接存储完整的新字符串
     FullReplacement(Arc<str>),
 }
 

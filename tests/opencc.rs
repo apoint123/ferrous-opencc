@@ -1,9 +1,15 @@
-use ferrous_opencc::{OpenCC, config::BuiltinConfig};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::BufReader,
+    path::PathBuf,
+};
+
+use ferrous_opencc::{
+    OpenCC,
+    config::BuiltinConfig,
+};
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::PathBuf;
 
 #[derive(Deserialize, Debug)]
 struct TestSuite {

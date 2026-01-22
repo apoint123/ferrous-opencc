@@ -1,26 +1,30 @@
-//! 实现 `FstDict`，一个基于 FST 的高性能词典。
-//! 优先从预编译的 `.ocb` 文件加载，
-//! 如果找不到，则从 `.txt` 文件编译。
+use std::{
+    fs::File,
+    io::{
+        BufReader,
+        Read,
+        Write,
+    },
+    path::Path,
+};
 
-use crate::dictionary::Dictionary;
-use crate::error::Result;
 use bincode::config;
-use ferrous_opencc_compiler::{Delta, SerializableFstDict, compile_dictionary};
+use ferrous_opencc_compiler::{
+    Delta,
+    SerializableFstDict,
+    compile_dictionary,
+};
 use fst::Map;
-use std::fs::File;
-use std::io::{BufReader, Read, Write};
-use std::path::Path;
 
-/// 一个使用 FST 实现的词典。
-/// 包含用于快速查询的 FST 映射、存储实际字符串值的向量，
-/// 以及用于优化的最长键长度。
+use crate::{
+    dictionary::Dictionary,
+    error::Result,
+};
+
 #[derive(Debug)]
 pub struct FstDict {
-    /// FST 映射，将键映射到 `values` 向量中的索引
     map: Map<Vec<u8>>,
-    /// 一个存储差异信息的列表
     values: Vec<Vec<Delta>>,
-    /// 词典中最长键的长度
     max_key_length: usize,
 }
 
@@ -40,46 +44,35 @@ fn apply_delta(key: &str, delta: &Delta) -> String {
 }
 
 impl FstDict {
-    /// 从给定路径创建一个新的 `FstDict` 实例。
-    /// 先从预编译的 `.ocb` 加载，
-    /// 没有再从文本文件编译
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         let compiled_path = path.with_extension("ocb");
 
-        // 检查是否存在预编译的文件
         if compiled_path.is_file() {
-            // 如果文本源文件也存在，则检查修改时间，判断缓存是否有效
             if let Ok(text_meta) = path.metadata() {
                 if let Ok(compiled_meta) = compiled_path.metadata() {
                     let text_modified = text_meta.modified()?;
                     let compiled_modified = compiled_meta.modified()?;
                     if compiled_modified > text_modified {
-                        // 缓存比源文件新，可以使用缓存
                         return Self::from_ocb_file(&compiled_path);
                     }
                 }
             } else {
-                // 源文件不存在，但缓存存在，直接使用缓存
                 return Self::from_ocb_file(&compiled_path);
             }
         }
 
-        // 无法使用缓存，则从文本文件编译，并创建新的缓存
         let dict = Self::from_text(path)?;
-        // 序列化失败也无所谓，只是意味着下次没有缓存用。可以忽略
         let _ = dict.serialize_to_file(&compiled_path);
         Ok(dict)
     }
 
-    /// 从 `.ocb` 加载词典
     fn from_ocb_file(path: &Path) -> Result<Self> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
         Self::from_reader(reader)
     }
 
-    /// 序列化词典
     pub fn serialize_to_file(&self, path: &Path) -> Result<()> {
         let values_bytes = bincode::encode_to_vec(&self.values, config::standard())?;
         let compressed_values = zstd::encode_all(&values_bytes[..], 0)?;
@@ -101,13 +94,11 @@ impl FstDict {
         Ok(())
     }
 
-    /// 从 `OpenCC` 格式的文本文件创建词典
     pub fn from_text(path: &Path) -> Result<Self> {
         let ocb_bytes = compile_dictionary(path)?;
         Self::from_ocb_bytes(&ocb_bytes)
     }
 
-    /// 从内存中的 `.ocb` 字节数组创建词典
     pub fn from_ocb_bytes(bytes: &[u8]) -> Result<Self> {
         Self::from_reader(bytes)
     }
@@ -141,36 +132,25 @@ impl FstDict {
 }
 
 impl Dictionary for FstDict {
-    /// 查找输入字符串在词典中的最长前缀匹配
     fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)> {
         let fst = self.map.as_fst();
         let mut node = fst.root();
 
-        // `last_match` 用于记录到目前为止找到的最长匹配的 (字节长度, 最终值的索引)
         let mut last_match: Option<(usize, u64)> = None;
 
-        // `current_output` 用于累加路径上的输出值
         let mut current_output: u64 = 0;
 
-        // 逐字节遍历输入字符串
         for (i, byte) in word.as_bytes().iter().enumerate() {
-            // 在当前节点的所有转换中，查找与当前字节匹配的转换
             if let Some(trans_idx) = node.find_input(*byte) {
                 let t = node.transition(trans_idx);
-                // 累加当前转换的输出值
                 current_output += t.out.value();
-                // 移动到转换指向的下一个节点
                 node = fst.node(t.addr);
 
-                // 如果新状态是一个终点，说明匹配到了一个完整的词
                 if node.is_final() {
-                    // 完整的值 = 路径累加值 + 终点额外值
                     let final_value = current_output + node.final_output().value();
-                    // 记录下这个匹配。因为我们从左到右遍历，这个记录会被更长的匹配覆盖。
                     last_match = Some((i + 1, final_value));
                 }
             } else {
-                // 当前字节没有对应的转换，说明不可能有更长的前缀了，退出循环
                 break;
             }
         }
@@ -196,8 +176,9 @@ impl Dictionary for FstDict {
 mod tests {
     use std::path::PathBuf;
 
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     fn create_test_dict_file(dir: &tempfile::TempDir, content: &str) -> PathBuf {
         let dict_path = dir.path().join("test_dict.txt");

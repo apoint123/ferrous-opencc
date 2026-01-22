@@ -1,73 +1,86 @@
-use crate::error::{OpenCCError, Result};
-use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::{
+    fs::File,
+    io::BufReader,
+    path::{
+        Path,
+        PathBuf,
+    },
+    str::FromStr,
+};
 
-/// 顶层的 JSON 配置结构
+use serde::{
+    Deserialize,
+    Serialize,
+};
+
+use crate::error::{
+    OpenCCError,
+    Result,
+};
+
+/// Top-level JSON configuration structure
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
-    /// 转换配置的名称
+    /// Name of the conversion configuration
     pub name: String,
-    /// 转换步骤链
+    /// Chain of conversion steps
     pub conversion_chain: Vec<ConversionNodeConfig>,
 
-    /// 配置文件所在的目录
+    /// Directory where the configuration file is located
     #[serde(skip)]
     directory: PathBuf,
 }
 
-/// 所有内置的 `OpenCC` 配置
+/// All built-in `OpenCC` configurations
 #[repr(i32)]
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinConfig {
-    /// 简体到繁体
+    /// Simplified to Traditional
     #[cfg(feature = "s2t-conversion")]
     S2t = 0,
-    /// 繁体到简体
+    /// Traditional to Simplified
     #[cfg(feature = "t2s-conversion")]
     T2s = 1,
-    /// 简体到台湾正体
+    /// Simplified to Traditional (Taiwan)
     #[cfg(feature = "s2t-conversion")]
     S2tw = 2,
-    /// 台湾正体到简体
+    /// Traditional (Taiwan) to Simplified
     #[cfg(feature = "t2s-conversion")]
     Tw2s = 3,
-    /// 简体到香港繁体
+    /// Simplified to Traditional (Hong Kong)
     #[cfg(feature = "s2t-conversion")]
     S2hk = 4,
-    /// 香港繁体到简体
+    /// Traditional (Hong Kong) to Simplified
     #[cfg(feature = "t2s-conversion")]
     Hk2s = 5,
-    /// 简体到台湾正体（包含词汇转换）
+    /// Simplified to Traditional (Taiwan) (including vocabulary conversion)
     #[cfg(feature = "s2t-conversion")]
     S2twp = 6,
-    /// 台湾正体（包含词汇转换）到简体
+    /// Traditional (Taiwan) (including vocabulary conversion) to Simplified
     #[cfg(feature = "t2s-conversion")]
     Tw2sp = 7,
-    /// 繁体到台湾正体
+    /// Traditional to Traditional (Taiwan)
     #[cfg(feature = "t2s-conversion")]
     T2tw = 8,
-    /// 台湾正体到繁体
+    /// Traditional (Taiwan) to Traditional
     #[cfg(feature = "s2t-conversion")]
     Tw2t = 9,
-    /// 繁体到香港繁体
+    /// Traditional to Traditional (Hong Kong)
     #[cfg(feature = "s2t-conversion")]
     T2hk = 10,
-    /// 香港繁体到繁体
+    /// Traditional (Hong Kong) to Traditional
     #[cfg(feature = "t2s-conversion")]
     Hk2t = 11,
-    /// 日语新字体到繁体
+    /// Japanese Shinjitai to Traditional
     #[cfg(feature = "japanese-conversion")]
     Jp2t = 12,
-    /// 繁体到日语新字体
+    /// Traditional to Japanese Shinjitai
     #[cfg(feature = "japanese-conversion")]
     T2jp = 13,
 }
 
 impl BuiltinConfig {
-    /// 将枚举成员转换为对应的文件名字符串
+    /// Converts the enum variant to the corresponding filename string
     #[must_use]
     pub const fn to_filename(&self) -> &'static str {
         match self {
@@ -102,7 +115,7 @@ impl BuiltinConfig {
         }
     }
 
-    /// 从文件名字符串转换为对应的枚举成员
+    /// Converts a filename string to the corresponding enum variant
     pub fn from_filename(filename: &str) -> Result<Self> {
         match filename {
             #[cfg(feature = "s2t-conversion")]
@@ -138,29 +151,30 @@ impl BuiltinConfig {
     }
 }
 
-/// 转换链中的一个节点
+/// A node in the conversion chain
 ///
-/// 每个节点对应一个基于词典的转换步骤
+/// Each node corresponds to a dictionary-based conversion step
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConversionNodeConfig {
-    /// 此转换步骤要使用的词典
+    /// The dictionary to use for this conversion step
     pub dict: DictConfig,
 }
 
-/// 代表一个词典配置，可以是一个单独的词典文件，也可以是一组词典
+/// Represents a dictionary configuration, which can be a single dictionary file or a group of
+/// dictionaries
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DictConfig {
-    /// 词典的类型，例如 "text" 或 "group"
+    /// Dictionary type, e.g., "text" or "group"
     #[serde(rename = "type")]
     pub dict_type: String,
-    /// 词典文件名 (用于 `type: "text"`)
+    /// Dictionary filename (for `type: "text"`)
     pub file: Option<String>,
-    /// 子词典列表 (用于 `type: "group"`)。
+    /// List of sub-dictionaries (for `type: "group"`)
     pub dicts: Option<Vec<Self>>,
 }
 
 impl Config {
-    /// 从 JSON 文件加载并解析配置
+    /// Loads and parses configuration from a JSON file
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let path = path.as_ref();
         let file = File::open(path)
@@ -168,13 +182,12 @@ impl Config {
         let reader = BufReader::new(file);
         let mut config: Self = serde_json::from_reader(reader)?;
 
-        // 保存配置文件的父目录
         config.directory = path.parent().unwrap_or_else(|| Path::new("")).to_path_buf();
 
         Ok(config)
     }
 
-    /// 获取配置文件所在的目录
+    /// Gets the directory where the configuration file is located
     #[must_use]
     pub fn get_config_directory(&self) -> &Path {
         &self.directory
