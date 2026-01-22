@@ -2,9 +2,9 @@ name: Rust CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 签出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: nightly
           components: clippy, rustfmt
 
       - name: 缓存依赖
@@ -38,12 +38,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable]
+        rust: [nightly]
 
     runs-on: ${{ matrix.os }}
     steps:
       - name: 签出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 安装 Rust 工具链
         uses: dtolnay/rust-toolchain@master
@@ -55,4 +55,3 @@ jobs:
 
       - name: 运行测试
         run: cargo test --all-features
-
