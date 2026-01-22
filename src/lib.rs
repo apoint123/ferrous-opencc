@@ -22,7 +22,7 @@
 
 pub mod config;
 mod conversion;
-mod dictionary;
+pub mod dictionary;
 pub mod error;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;

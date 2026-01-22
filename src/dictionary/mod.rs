@@ -1,7 +1,8 @@
 mod dict_group;
 mod fst_dict;
+pub use fst_dict::FstDict;
 
-pub mod embedded {
+pub(super) mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_map.rs"));
 }
 
@@ -16,23 +17,19 @@ use std::{
 
 use crate::{
     config::DictConfig,
-    dictionary::{
-        dict_group::DictGroup,
-        fst_dict::FstDict,
-    },
+    dictionary::dict_group::DictGroup,
     error::{
         OpenCCError,
         Result,
     },
 };
 
-pub trait Dictionary: Send + Sync + Debug {
+pub(super) trait Dictionary: Send + Sync + Debug {
     fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)>;
     fn max_key_length(&self) -> usize;
 }
 
-#[allow(dead_code)]
-pub struct DictType;
+pub(super) struct DictType;
 
 impl DictType {
     pub(super) fn from_config(
