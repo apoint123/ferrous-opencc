@@ -40,6 +40,7 @@ tempfile = "3.24"
 
 [dev-dependencies]
 tempfile = "3.24"
+criterion = { version = "0.8", features = ["html_reports"] }
 
 [features]
 default = ["s2t-conversion", "t2s-conversion"]
@@ -53,6 +54,10 @@ cli = ["dep:clap"]
 wasm = ["dep:wasm-bindgen", "s2t-conversion", "t2s-conversion"]
 
 full = ["s2t-conversion", "t2s-conversion", "japanese-conversion"]
+
+[[bench]]
+name = "performance"
+harness = false
 
 [patch.crates-io]
 ferrous-opencc-compiler = { path = "ferrous-opencc-compiler" }
