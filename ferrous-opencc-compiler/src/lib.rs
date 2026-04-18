@@ -7,42 +7,34 @@ use std::{
         Write,
     },
     path::Path,
-    sync::Arc,
 };
 
 use anyhow::{
     Context,
     Result,
 };
-use bincode::{
-    Decode,
-    Encode,
-    config,
-};
 use fst::MapBuilder;
+use rkyv::{
+    Archive,
+    Deserialize,
+    Serialize,
+};
 
-#[derive(Encode, Decode, Debug)]
-pub struct SerializableOptimizedValues {
-    pub string_pool: Vec<Arc<str>>,
-    pub flat_indices: Vec<u32>,
-    pub offsets: Vec<u32>,
-}
-
-#[derive(Encode, Decode, Debug)]
+#[derive(Archive, Serialize, Deserialize, Debug)]
 pub enum Delta {
     CharDiffs(Vec<(u16, char)>),
-    FullReplacement(Arc<str>),
+    FullReplacement(String),
 }
 
-#[derive(Encode, Decode, Debug)]
+#[derive(Archive, Serialize, Deserialize, Debug)]
 pub struct SerializableFstDict {
-    pub values_bytes: Vec<u8>,
-    pub max_key_length: usize,
+    pub values: Vec<Vec<Delta>>,
+    pub max_key_length: u32,
 }
 
 fn compute_delta(key: &str, value: &str) -> Delta {
     if key.chars().count() != value.chars().count() {
-        return Delta::FullReplacement(value.into());
+        return Delta::FullReplacement(value.to_string());
     }
 
     let diffs: Vec<(u16, char)> = key
@@ -53,7 +45,7 @@ fn compute_delta(key: &str, value: &str) -> Delta {
         .collect();
 
     if diffs.len() * 6 > value.len() {
-        return Delta::FullReplacement(value.into());
+        return Delta::FullReplacement(value.to_string());
     }
 
     Delta::CharDiffs(diffs)
@@ -65,7 +57,7 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
     let reader = BufReader::new(file);
 
     let mut entries = BTreeMap::new();
-    let mut max_key_length = 0;
+    let mut max_key_length = 0u32;
 
     for line in reader.lines() {
         let line = line.with_context(|| "Failed to read line from dictionary")?;
@@ -81,7 +73,7 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
             let values: Vec<&str> = parts[1].split(' ').collect();
 
             if !key.is_empty() && !values.is_empty() && !values.iter().any(|s| s.is_empty()) {
-                max_key_length = max_key_length.max(key.chars().count());
+                max_key_length = max_key_length.max(key.chars().count() as u32);
                 let delta_values = values.into_iter().map(|v| compute_delta(key, v)).collect();
                 entries.insert(key.to_string(), delta_values);
             }
@@ -103,16 +95,14 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
         .into_inner()
         .with_context(|| "Failed to finalize FST construction")?;
 
-    let values_bytes = bincode::encode_to_vec(&values_vec, config::standard())
-        .with_context(|| "Bincode values serialization failed")?;
-
     let metadata = SerializableFstDict {
-        values_bytes,
+        values: values_vec,
         max_key_length,
     };
 
-    let metadata_bytes = bincode::encode_to_vec(&metadata, config::standard())
-        .with_context(|| "Bincode metadata serialization failed")?;
+    let metadata_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&metadata)
+        .map_err(|e| anyhow::anyhow!("Rkyv serialization failed: {e}"))?
+        .into_vec();
 
     let mut final_bytes = Vec::new();
 

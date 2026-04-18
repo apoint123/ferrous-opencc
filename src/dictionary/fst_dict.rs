@@ -8,11 +8,9 @@ use std::{
     path::Path,
 };
 
-use bincode::config;
 use ferrous_opencc_compiler::{
-    Delta,
-    SerializableFstDict,
-    compile_dictionary,
+    ArchivedDelta,
+    ArchivedSerializableFstDict,
 };
 use fst::Map;
 
@@ -24,16 +22,18 @@ use crate::{
 #[derive(Debug)]
 pub struct FstDict {
     map: Map<Vec<u8>>,
-    values: Vec<Vec<Delta>>,
-    max_key_length: usize,
+    metadata_bytes: Vec<u8>,
 }
 
-fn apply_delta(key: &str, delta: &Delta) -> String {
+fn apply_delta(key: &str, delta: &ArchivedDelta) -> String {
     match delta {
-        Delta::FullReplacement(s) => s.to_string(),
-        Delta::CharDiffs(diffs) => {
+        ArchivedDelta::FullReplacement(s) => s.as_str().to_string(),
+        ArchivedDelta::CharDiffs(diffs) => {
             let mut chars: Vec<char> = key.chars().collect();
-            for &(index, new_char) in diffs {
+            for diff in diffs.iter() {
+                let (index, new_char): (u16, char) =
+                    rkyv::deserialize::<_, rkyv::rancor::Error>(diff).unwrap();
+
                 if let Some(c) = chars.get_mut(index as usize) {
                     *c = new_char;
                 }
@@ -74,27 +74,18 @@ impl FstDict {
     }
 
     pub fn serialize_to_file(&self, path: &Path) -> Result<()> {
-        let values_bytes = bincode::encode_to_vec(&self.values, config::standard())?;
-
-        let metadata = SerializableFstDict {
-            values_bytes,
-            max_key_length: self.max_key_length,
-        };
-        let metadata_bytes = bincode::encode_to_vec(&metadata, config::standard())?;
-
+        let mut file = File::create(path)?;
         let mut final_bytes = Vec::new();
-        final_bytes.write_all(&(metadata_bytes.len() as u64).to_le_bytes())?;
-        final_bytes.write_all(&metadata_bytes)?;
+        final_bytes.write_all(&(self.metadata_bytes.len() as u64).to_le_bytes())?;
+        final_bytes.write_all(&self.metadata_bytes)?;
         final_bytes.write_all(self.map.as_fst().as_bytes())?;
 
-        let mut file = File::create(path)?;
         file.write_all(&final_bytes)?;
-
         Ok(())
     }
 
     pub fn from_text(path: &Path) -> Result<Self> {
-        let ocb_bytes = compile_dictionary(path)?;
+        let ocb_bytes = ferrous_opencc_compiler::compile_dictionary(path)?;
         Self::from_ocb_bytes(&ocb_bytes)
     }
 
@@ -110,21 +101,16 @@ impl FstDict {
         let mut metadata_bytes = vec![0; metadata_len];
         reader.read_exact(&mut metadata_bytes)?;
 
-        let (metadata, _): (SerializableFstDict, usize) =
-            bincode::decode_from_slice(&metadata_bytes, config::standard())?;
+        rkyv::access::<ArchivedSerializableFstDict, rkyv::rancor::Error>(&metadata_bytes)?;
 
-        let (values, _): (Vec<Vec<Delta>>, usize) =
-            bincode::decode_from_slice(&metadata.values_bytes, config::standard())?;
-
-        let mut fst_bytes = Vec::new();
+        let mut fst_bytes: Vec<u8> = Vec::new();
         reader.read_to_end(&mut fst_bytes)?;
 
         let map = Map::new(fst_bytes)?;
 
         Ok(Self {
             map,
-            values,
-            max_key_length: metadata.max_key_length,
+            metadata_bytes,
         })
     }
 }
@@ -153,20 +139,27 @@ impl Dictionary for FstDict {
             }
         }
 
-        if let Some((len, value_index)) = last_match
-            && let Some(deltas) = self.values.get(value_index as usize)
-        {
-            let key = &word[..len];
-            let result_values: Vec<String> =
-                deltas.iter().map(|delta| apply_delta(key, delta)).collect();
-            return Some((key, result_values));
+        if let Some((len, value_index)) = last_match {
+            let metadata = unsafe {
+                rkyv::access_unchecked::<ArchivedSerializableFstDict>(&self.metadata_bytes)
+            };
+
+            if let Some(deltas) = metadata.values.get(value_index as usize) {
+                let key = &word[..len];
+                let result_values: Vec<String> =
+                    deltas.iter().map(|delta| apply_delta(key, delta)).collect();
+                return Some((key, result_values));
+            }
         }
 
         None
     }
 
     fn max_key_length(&self) -> usize {
-        self.max_key_length
+        let metadata =
+            unsafe { rkyv::access_unchecked::<ArchivedSerializableFstDict>(&self.metadata_bytes) };
+
+        rkyv::deserialize::<u32, rkyv::rancor::Error>(&metadata.max_key_length).unwrap() as usize
     }
 }
 

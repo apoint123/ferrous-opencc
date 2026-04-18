@@ -14,13 +14,9 @@ pub enum OpenCCError {
     #[error("FST error: {0}")]
     Fst(#[from] fst::Error),
 
-    /// Error during Bincode deserialization
-    #[error("Bincode decoding error: {0}")]
-    BincodeDecode(#[from] bincode::error::DecodeError),
-
-    /// Error during Bincode serialization
-    #[error("Bincode encoding error: {0}")]
-    BincodeEncode(#[from] bincode::error::EncodeError),
+    /// Invalid rkyv dictionary format
+    #[error("Invalid rkyv dictionary format: {0}")]
+    InvalidDictFormat(#[from] rkyv::rancor::Error),
 
     /// Invalid configuration format
     #[error("Invalid configuration format: {0}")]
