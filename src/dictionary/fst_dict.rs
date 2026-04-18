@@ -75,10 +75,9 @@ impl FstDict {
 
     pub fn serialize_to_file(&self, path: &Path) -> Result<()> {
         let values_bytes = bincode::encode_to_vec(&self.values, config::standard())?;
-        let compressed_values = zstd::encode_all(&values_bytes[..], 0)?;
 
         let metadata = SerializableFstDict {
-            compressed_values,
+            values_bytes,
             max_key_length: self.max_key_length,
         };
         let metadata_bytes = bincode::encode_to_vec(&metadata, config::standard())?;
@@ -114,9 +113,8 @@ impl FstDict {
         let (metadata, _): (SerializableFstDict, usize) =
             bincode::decode_from_slice(&metadata_bytes, config::standard())?;
 
-        let values_bytes = zstd::decode_all(&metadata.compressed_values[..])?;
         let (values, _): (Vec<Vec<Delta>>, usize) =
-            bincode::decode_from_slice(&values_bytes, config::standard())?;
+            bincode::decode_from_slice(&metadata.values_bytes, config::standard())?;
 
         let mut fst_bytes = Vec::new();
         reader.read_to_end(&mut fst_bytes)?;

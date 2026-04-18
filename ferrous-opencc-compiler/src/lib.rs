@@ -1,13 +1,24 @@
 use std::{
     collections::BTreeMap,
     fs::File,
-    io::{BufRead, BufReader, Write},
+    io::{
+        BufRead,
+        BufReader,
+        Write,
+    },
     path::Path,
     sync::Arc,
 };
 
-use anyhow::{Context, Result};
-use bincode::{Decode, Encode, config};
+use anyhow::{
+    Context,
+    Result,
+};
+use bincode::{
+    Decode,
+    Encode,
+    config,
+};
 use fst::MapBuilder;
 
 #[derive(Encode, Decode, Debug)]
@@ -25,7 +36,7 @@ pub enum Delta {
 
 #[derive(Encode, Decode, Debug)]
 pub struct SerializableFstDict {
-    pub compressed_values: Vec<u8>,
+    pub values_bytes: Vec<u8>,
     pub max_key_length: usize,
 }
 
@@ -95,11 +106,8 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
     let values_bytes = bincode::encode_to_vec(&values_vec, config::standard())
         .with_context(|| "Bincode values serialization failed")?;
 
-    let compressed_values =
-        zstd::encode_all(&values_bytes[..], 0).with_context(|| "Zstd compression failed")?;
-
     let metadata = SerializableFstDict {
-        compressed_values,
+        values_bytes,
         max_key_length,
     };
 
