@@ -21,27 +21,8 @@
 
 ```toml
 [dependencies]
-ferrous-opencc = "0.2"
+ferrous-opencc = "0.4"
 ```
-
-### 目录结构
-
-本库会从本地加载词典和配置文件。你可以使用本库附带的全套字典文件，或自行编译并放入 `assets/dictionaries/` 文件夹。
-
-```
-你的项目/
-├── assets/
-│   ├── dictionaries/
-│   │   ├── STPhrases.txt
-│   │   ├── STCharacters.txt
-│   │   ├── TPhrases.txt
-│   │   └── ... (其他 .txt 词典文件)
-│   └── s2t.json
-└── src/
-    └── main.rs
-```
-
-可以从 [OpenCC 官方仓库](https://github.com/BYVoid/OpenCC/tree/master/data) 获取这些词典和配置文件。
 
 ## 示例
 
@@ -187,13 +168,53 @@ fn main() -> Result<()> {
     // 执行转换
     let text = "我用路由器上网";
     let converted_text = converter.convert(text);
-    
+
     println!("'{}' -> '{}'", text, converted_text);
     // 预期输出: '我用路由器上网' -> '我用路由器上網'
 
     Ok(())
 }
 ```
+
+## 性能
+
+所有基准测试均在 GitHub Actions (`macos-latest`) 上运行，以便与[官方 OpenCC C++ 基准测试](https://github.com/BYVoid/OpenCC/blob/master/src/benchmark/Performance.cpp)进行公平对比。
+
+### 初始化
+
+| 配置    | ferrous-opencc | OpenCC C++ | 性能提升 |
+| :------ | :------------- | :--------- | :------- |
+| `hk2s`  | 48.1 µs        | 868 µs     | ~18x     |
+| `hk2t`  | 2.88 µs        | 139 µs     | ~48x     |
+| `jp2t`  | 5.63 µs        | 203 µs     | ~36x     |
+| `s2hk`  | 755 µs         | 26,201 µs  | ~35x     |
+| `s2t`   | 785 µs         | 26,385 µs  | ~34x     |
+| `s2tw`  | 795 µs         | 27,108 µs  | ~34x     |
+| `s2twp` | 812 µs         | 26,446 µs  | ~33x     |
+| `t2hk`  | 1.10 µs        | 66.7 µs    | ~61x     |
+| `t2jp`  | 3.34 µs        | 166 µs     | ~50x     |
+| `t2s`   | 45.0 µs        | 797 µs     | ~18x     |
+| `t2tw`  | 916 ns         | 58.1 µs    | ~63x     |
+| `tw2s`  | 47.3 µs        | 845 µs     | ~18x     |
+| `tw2sp` | 52.0 µs        | 1,004 µs   | ~19x     |
+| `tw2t`  | 1.90 µs        | 93.3 µs    | ~49x     |
+
+### 转换
+
+| 基准测试                  | ferrous-opencc | OpenCC C++ | 性能提升 |
+| :------------------------ | :------------- | :--------- | :------- |
+| `convert_long_text/s2t`   | 103 ms         | 327 ms     | ~3.2x    |
+| `convert_long_text/s2twp` | 154 ms         | 554 ms     | ~3.6x    |
+| `convert/s2t/100`         | 118 µs         | 649 µs     | ~5.5x    |
+| `convert/s2t/1000`        | 1.20 ms        | 6.64 ms    | ~5.5x    |
+| `convert/s2t/10000`       | 12.4 ms        | 68.1 ms    | ~5.5x    |
+| `convert/s2t/100000`      | 126 ms         | 718 ms     | ~5.7x    |
+| `convert/s2twp/100`       | 204 µs         | 1.20 ms    | ~5.9x    |
+| `convert/s2twp/1000`      | 2.09 ms        | 12.3 ms    | ~5.9x    |
+| `convert/s2twp/10000`     | 21.4 ms        | 126 ms     | ~5.9x    |
+| `convert/s2twp/100000`    | 219 ms         | 1,296 ms   | ~5.9x    |
+
+> **测试环境**：ferrous-opencc 的数据来源于[此 GitHub Actions 任务](https://github.com/apoint123/ferrous-opencc/actions/runs/24602342131/job/71943070953#step:5:1)。OpenCC C++ 的结果来自[官方 OpenCC 仓库](https://github.com/BYVoid/OpenCC#benchmark-%E5%9F%BA%E6%BA%96%E6%B8%AC%E8%A9%A6)。
 
 ## 开源协议
 

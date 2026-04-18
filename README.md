@@ -21,27 +21,8 @@ Add `ferrous-opencc` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-ferrous-opencc = "0.2"
+ferrous-opencc = "0.4"
 ```
-
-### Directory Structure
-
-This library loads dictionaries and configuration files from the local filesystem. You can use the provided set of dictionary files, or compile your own and place them in the `assets/dictionaries/` folder.
-
-```
-your-project/
-├── assets/
-│   ├── dictionaries/
-│   │   ├── STPhrases.txt
-│   │   ├── STCharacters.txt
-│   │   ├── TPhrases.txt
-│   │   └── ... (other .txt dictionary files)
-│   └── s2t.json
-└── src/
-    └── main.rs
-```
-
-You can obtain these dictionary and configuration files from the [official OpenCC repository](https://github.com/BYVoid/OpenCC/tree/master/data).
 
 ## Examples
 
@@ -121,7 +102,7 @@ You can run this binary target directly through Cargo.
 cargo run --bin opencc-dict-compiler -- --input assets/dictionaries/STPhrases.txt --output ./STPhrases.ocb
 ```
 
-This will generate an `STPhrases.ocb` file in the same directory. 
+This will generate an `STPhrases.ocb` file in the same directory.
 
 ## Using Custom Dictionaries
 
@@ -186,13 +167,53 @@ fn main() -> Result<()> {
     // Perform the conversion
     let text = "我用路由器上网";
     let converted_text = converter.convert(text);
-    
+
     println!("'{}' -> '{}'", text, converted_text);
     // Expected output: '我用路由器上网' -> '我用路由器上網'
 
     Ok(())
 }
 ```
+
+## Performance
+
+All benchmarks were run on GitHub Actions (`macos-latest`) for a fair, apples-to-apples comparison with the [official OpenCC C++ benchmark](https://github.com/BYVoid/OpenCC/blob/master/src/benchmark/Performance.cpp).
+
+### Initialization
+
+| Config  | ferrous-opencc | OpenCC C++ | Speedup |
+| :------ | :------------- | :--------- | :------ |
+| `hk2s`  | 48.1 µs        | 868 µs     | ~18x    |
+| `hk2t`  | 2.88 µs        | 139 µs     | ~48x    |
+| `jp2t`  | 5.63 µs        | 203 µs     | ~36x    |
+| `s2hk`  | 755 µs         | 26,201 µs  | ~35x    |
+| `s2t`   | 785 µs         | 26,385 µs  | ~34x    |
+| `s2tw`  | 795 µs         | 27,108 µs  | ~34x    |
+| `s2twp` | 812 µs         | 26,446 µs  | ~33x    |
+| `t2hk`  | 1.10 µs        | 66.7 µs    | ~61x    |
+| `t2jp`  | 3.34 µs        | 166 µs     | ~50x    |
+| `t2s`   | 45.0 µs        | 797 µs     | ~18x    |
+| `t2tw`  | 916 ns         | 58.1 µs    | ~63x    |
+| `tw2s`  | 47.3 µs        | 845 µs     | ~18x    |
+| `tw2sp` | 52.0 µs        | 1,004 µs   | ~19x    |
+| `tw2t`  | 1.90 µs        | 93.3 µs    | ~49x    |
+
+### Conversion
+
+| Benchmark                 | ferrous-opencc | OpenCC C++ | Speedup |
+| :------------------------ | :------------- | :--------- | :------ |
+| `convert_long_text/s2t`   | 103 ms         | 327 ms     | ~3.2x   |
+| `convert_long_text/s2twp` | 154 ms         | 554 ms     | ~3.6x   |
+| `convert/s2t/100`         | 118 µs         | 649 µs     | ~5.5x   |
+| `convert/s2t/1000`        | 1.20 ms        | 6.64 ms    | ~5.5x   |
+| `convert/s2t/10000`       | 12.4 ms        | 68.1 ms    | ~5.5x   |
+| `convert/s2t/100000`      | 126 ms         | 718 ms     | ~5.7x   |
+| `convert/s2twp/100`       | 204 µs         | 1.20 ms    | ~5.9x   |
+| `convert/s2twp/1000`      | 2.09 ms        | 12.3 ms    | ~5.9x   |
+| `convert/s2twp/10000`     | 21.4 ms        | 126 ms     | ~5.9x   |
+| `convert/s2twp/100000`    | 219 ms         | 1,296 ms   | ~5.9x   |
+
+> **Benchmark environment**: ferrous-opencc results are from [this GitHub Actions job](https://github.com/apoint123/ferrous-opencc/actions/runs/24602342131/job/71943070953#step:5:1). OpenCC C++ results are from the [official OpenCC repository](https://github.com/BYVoid/OpenCC#benchmark-%E5%9F%BA%E6%BA%96%E6%B8%AC%E8%A9%A6).
 
 ## License
 
