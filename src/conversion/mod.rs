@@ -52,19 +52,15 @@ impl ConversionChain {
 
         while i < text.len() {
             let remaining_text = &text[i..];
-            if let Some((key, values)) = dict.match_prefix(remaining_text) {
-                if let Some(values_0) = values.first() {
-                    let res_str = result.get_or_insert_with(|| {
-                        let mut new_string = String::with_capacity(text.len());
-                        new_string.push_str(&text[..i]);
-                        new_string
-                    });
+            if let Some((key, value)) = dict.match_prefix(remaining_text) {
+                let res_str = result.get_or_insert_with(|| {
+                    let mut new_string = String::with_capacity(text.len());
+                    new_string.push_str(&text[..i]);
+                    new_string
+                });
 
-                    res_str.push_str(values_0);
-                    i += key.len();
-                } else {
-                    i = advance_char(i, remaining_text, result.as_mut());
-                }
+                res_str.push_str(value);
+                i += key.len();
             } else {
                 i = advance_char(i, remaining_text, result.as_mut());
             }
@@ -110,18 +106,16 @@ mod tests {
     }
 
     impl Dictionary for MockDict {
-        fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, Vec<String>)> {
+        fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)> {
             let mut longest_match_len = 0;
-            let mut result: Option<(&'b str, Vec<String>)> = None;
+            let mut result: Option<(&'b str, &'a str)> = None;
 
             for (key, values) in &self.entries {
-                if word.starts_with(key) && key.len() > longest_match_len {
+                if word.starts_with(key.as_str()) && key.len() > longest_match_len {
                     longest_match_len = key.len();
-                    let string_values = values
-                        .iter()
-                        .map(std::string::ToString::to_string)
-                        .collect();
-                    result = Some((&word[..key.len()], string_values));
+                    if let Some(first) = values.first() {
+                        result = Some((&word[..key.len()], first.as_ref()));
+                    }
                 }
             }
             result

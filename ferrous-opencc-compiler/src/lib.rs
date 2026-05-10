@@ -21,34 +21,9 @@ use rkyv::{
 };
 
 #[derive(Archive, Serialize, Deserialize, Debug)]
-pub enum Delta {
-    CharDiffs(Vec<(u16, char)>),
-    FullReplacement(String),
-}
-
-#[derive(Archive, Serialize, Deserialize, Debug)]
 pub struct SerializableFstDict {
-    pub values: Vec<Vec<Delta>>,
+    pub values: Vec<Vec<String>>,
     pub max_key_length: u32,
-}
-
-fn compute_delta(key: &str, value: &str) -> Delta {
-    if key.chars().count() != value.chars().count() {
-        return Delta::FullReplacement(value.to_string());
-    }
-
-    let diffs: Vec<(u16, char)> = key
-        .chars()
-        .zip(value.chars())
-        .enumerate()
-        .filter_map(|(i, (k, v))| if k != v { Some((i as u16, v)) } else { None })
-        .collect();
-
-    if diffs.len() * 6 > value.len() {
-        return Delta::FullReplacement(value.to_string());
-    }
-
-    Delta::CharDiffs(diffs)
 }
 
 pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
@@ -74,13 +49,15 @@ pub fn compile_dictionary(input_path: &Path) -> Result<Vec<u8>> {
 
             if !key.is_empty() && !values.is_empty() && !values.iter().any(|s| s.is_empty()) {
                 max_key_length = max_key_length.max(key.chars().count() as u32);
-                let delta_values = values.into_iter().map(|v| compute_delta(key, v)).collect();
-                entries.insert(key.to_string(), delta_values);
+
+                let string_values: Vec<String> =
+                    values.into_iter().map(|v| v.to_string()).collect();
+                entries.insert(key.to_string(), string_values);
             }
         }
     }
 
-    let mut values_vec: Vec<Vec<Delta>> = Vec::with_capacity(entries.len());
+    let mut values_vec: Vec<Vec<String>> = Vec::with_capacity(entries.len());
     let mut builder = MapBuilder::memory();
 
     for (key, values) in entries {

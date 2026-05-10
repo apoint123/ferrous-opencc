@@ -8,10 +8,7 @@ use std::{
     path::Path,
 };
 
-use ferrous_opencc_compiler::{
-    ArchivedDelta,
-    ArchivedSerializableFstDict,
-};
+use ferrous_opencc_compiler::ArchivedSerializableFstDict;
 use fst::Map;
 
 use crate::{
@@ -23,24 +20,6 @@ use crate::{
 pub struct FstDict {
     map: Map<Vec<u8>>,
     metadata_bytes: Vec<u8>,
-}
-
-fn apply_delta(key: &str, delta: &ArchivedDelta) -> String {
-    match delta {
-        ArchivedDelta::FullReplacement(s) => s.as_str().to_string(),
-        ArchivedDelta::CharDiffs(diffs) => {
-            let mut chars: Vec<char> = key.chars().collect();
-            for diff in diffs.iter() {
-                let (index, new_char): (u16, char) =
-                    rkyv::deserialize::<_, rkyv::rancor::Error>(diff).unwrap();
-
-                if let Some(c) = chars.get_mut(index as usize) {
-                    *c = new_char;
-                }
-            }
-            chars.into_iter().collect()
-        }
-    }
 }
 
 impl FstDict {
@@ -116,7 +95,7 @@ impl FstDict {
 }
 
 impl Dictionary for FstDict {
-    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)> {
+    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)> {
         let fst = self.map.as_fst();
         let mut node = fst.root();
 
@@ -144,11 +123,11 @@ impl Dictionary for FstDict {
                 rkyv::access_unchecked::<ArchivedSerializableFstDict>(&self.metadata_bytes)
             };
 
-            if let Some(deltas) = metadata.values.get(value_index as usize) {
+            if let Some(values) = metadata.values.get(value_index as usize)
+                && let Some(first_value) = values.iter().next()
+            {
                 let key = &word[..len];
-                let result_values: Vec<String> =
-                    deltas.iter().map(|delta| apply_delta(key, delta)).collect();
-                return Some((key, result_values));
+                return Some((key, first_value.as_str()));
             }
         }
 
@@ -186,29 +165,22 @@ mod tests {
 
         let dict = FstDict::from_text(&dict_path).unwrap();
 
-        let (key, values) = dict.match_prefix("一个").unwrap();
+        let (key, value) = dict.match_prefix("一个").unwrap();
         assert_eq!(key, "一个");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["一個"]);
-        let (key, values) = dict.match_prefix("一个半小时").unwrap();
+        assert_eq!(value, "一個");
+        let (key, value) = dict.match_prefix("一个半小时").unwrap();
         assert_eq!(key, "一个半");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["一個半"]);
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["一個半"]);
+        assert_eq!(value, "一個半");
 
-        let (key, values) = dict.match_prefix("世纪之交").unwrap();
+        let (key, value) = dict.match_prefix("世纪之交").unwrap();
         assert_eq!(key, "世纪");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["世紀"]);
-        let (key, values) = dict.match_prefix("一").unwrap();
+        assert_eq!(value, "世紀");
+        let (key, value) = dict.match_prefix("一").unwrap();
         assert_eq!(key, "一");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["一"]);
-        let (key, values) = dict.match_prefix("一").unwrap();
+        assert_eq!(value, "一");
+        let (key, value) = dict.match_prefix("一").unwrap();
         assert_eq!(key, "一");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["一"]);
+        assert_eq!(value, "一");
     }
 
     #[test]
@@ -225,14 +197,12 @@ mod tests {
 
         let dict_from_ocb = FstDict::new(&txt_path).unwrap();
 
-        let (key, values) = dict_from_ocb.match_prefix("你好世界").unwrap();
+        let (key, value) = dict_from_ocb.match_prefix("你好世界").unwrap();
         assert_eq!(key, "你好");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["Hello"]);
+        assert_eq!(value, "Hello");
 
-        let (key, values) = dict_from_ocb.match_prefix("你好世界").unwrap();
+        let (key, value) = dict_from_ocb.match_prefix("你好世界").unwrap();
         assert_eq!(key, "你好");
-        let values_str: Vec<&str> = values.iter().map(AsRef::as_ref).collect();
-        assert_eq!(values_str, ["Hello"]);
+        assert_eq!(value, "Hello");
     }
 }

@@ -34,14 +34,23 @@ impl Debug for DictGroup {
 }
 
 impl Dictionary for DictGroup {
-    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)> {
-        self.dicts
-            .iter()
-            .filter_map(|dict| dict.match_prefix(word))
-            .fold(None, |acc, item| match acc {
-                Some(ref best) if best.0.len() >= item.0.len() => acc,
-                _ => Some(item),
-            })
+    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)> {
+        let max_possible = self.max_key_length.min(word.len());
+        let mut best: Option<(&'b str, &'a str)> = None;
+
+        for dict in &self.dicts {
+            if let Some(item) = dict.match_prefix(word) {
+                let item_len = item.0.len();
+                if best.is_none() || item_len > best.unwrap().0.len() {
+                    best = Some(item);
+                    if item_len == max_possible {
+                        break;
+                    }
+                }
+            }
+        }
+
+        best
     }
 
     fn max_key_length(&self) -> usize {

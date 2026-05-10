@@ -25,7 +25,7 @@ use crate::{
 };
 
 pub(super) trait Dictionary: Send + Sync + Debug {
-    fn match_prefix<'a>(&self, word: &'a str) -> Option<(&'a str, Vec<String>)>;
+    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)>;
     fn max_key_length(&self) -> usize;
 }
 
