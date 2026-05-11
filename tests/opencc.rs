@@ -1,7 +1,5 @@
 use std::{
     collections::HashMap,
-    fs::File,
-    io::BufReader,
     path::PathBuf,
 };
 
@@ -29,17 +27,16 @@ fn test_official_compatibility() {
     let mut json_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     json_path.push("tests");
     json_path.push("data");
-    json_path.push("testcases.json");
+    json_path.push("testcases.jsonc");
 
     assert!(
         json_path.exists(),
-        "testcases.json not found at {}",
+        "testcases.jsonc not found at {}",
         json_path.display()
     );
 
-    let file = File::open(&json_path).expect("Failed to open testcases.json");
-    let reader = BufReader::new(file);
-    let suite: TestSuite = serde_json::from_reader(reader).expect("Failed to parse testcases.json");
+    let file_content = std::fs::read_to_string(&json_path).unwrap();
+    let suite: TestSuite = json5::from_str(&file_content).expect("Failed to parse testcases.jsonc");
 
     let mut converters: HashMap<String, OpenCC> = HashMap::new();
 

@@ -40,6 +40,7 @@ tempfile = "3.24"
 [dev-dependencies]
 tempfile = "3.24"
 criterion = { version = "0.8", features = ["html_reports"] }
+json5 = "1.3.1"
 
 [features]
 default = ["s2t-conversion", "t2s-conversion"]
