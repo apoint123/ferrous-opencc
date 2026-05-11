@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use clap::Parser;
-use ferrous_opencc::dictionary::FstDict;
+use ferrous_opencc::FstDict;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

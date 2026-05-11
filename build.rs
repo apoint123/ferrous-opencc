@@ -1,11 +1,6 @@
 use std::{
     env,
     fs,
-    fs::File,
-    io::{
-        BufWriter,
-        Write,
-    },
     path::{
         Path,
         PathBuf,
@@ -16,10 +11,61 @@ use anyhow::{
     Context,
     Result,
 };
-use ferrous_opencc_compiler::compile_dictionary;
+use ferrous_opencc_compiler::{
+    CompilerChain,
+    CompilerDictGroup,
+    compile_chain,
+};
+use serde::Deserialize;
+
+#[derive(Deserialize, Debug)]
+struct Config {
+    conversion_chain: Vec<ConversionNodeConfig>,
+}
+
+#[derive(Deserialize, Debug)]
+struct ConversionNodeConfig {
+    dict: DictConfig,
+}
+
+#[derive(Deserialize, Debug)]
+struct DictConfig {
+    #[serde(rename = "type")]
+    dict_type: String,
+    file: Option<String>,
+    dicts: Option<Vec<Self>>,
+}
+
+fn extract_compiler_chain(chain_config: &[ConversionNodeConfig], dict_dir: &Path) -> CompilerChain {
+    let mut groups = Vec::new();
+    for node in chain_config {
+        let mut paths = Vec::new();
+        match node.dict.dict_type.as_str() {
+            "group" => {
+                if let Some(dicts) = &node.dict.dicts {
+                    for d in dicts {
+                        if let Some(f) = &d.file {
+                            let actual_file = f.replace(".ocd2", ".txt");
+                            paths.push(dict_dir.join(actual_file));
+                        }
+                    }
+                }
+            }
+            "text" | "ocd2" => {
+                if let Some(f) = &node.dict.file {
+                    let actual_file = f.replace(".ocd2", ".txt");
+                    paths.push(dict_dir.join(actual_file));
+                }
+            }
+            _ => {}
+        }
+        groups.push(CompilerDictGroup { dict_paths: paths });
+    }
+    CompilerChain { groups }
+}
 
 fn run() -> Result<()> {
-    let out_dir = env::var("OUT_DIR").context("Failed to get OUT_DIR environment variable")?;
+    let out_dir = env::var("OUT_DIR").context("Failed to get OUT_DIR")?;
     let dest_path = Path::new(&out_dir);
     let manifest_dir = PathBuf::from(
         env::var("CARGO_MANIFEST_DIR").context("Failed to get CARGO_MANIFEST_DIR env variable")?,
@@ -28,103 +74,38 @@ fn run() -> Result<()> {
     let assets_root = manifest_dir.join("assets");
     let dict_dir = assets_root.join("dictionaries");
 
-    let mut dict_map_builder = phf_codegen::Map::<&str>::new();
-    let mut dicts_to_add: Vec<(String, String)> = Vec::new();
+    let s2t = env::var("CARGO_FEATURE_S2T_CONVERSION").is_ok();
+    let t2s = env::var("CARGO_FEATURE_T2S_CONVERSION").is_ok();
+    let japanese = env::var("CARGO_FEATURE_JAPANESE_CONVERSION").is_ok();
 
-    if dict_dir.exists() {
-        let s2t = env::var("CARGO_FEATURE_S2T_CONVERSION").is_ok();
-        let t2s = env::var("CARGO_FEATURE_T2S_CONVERSION").is_ok();
-        let japanese = env::var("CARGO_FEATURE_JAPANESE_CONVERSION").is_ok();
+    if assets_root.exists() {
+        for entry in fs::read_dir(&assets_root)? {
+            let path = entry?.path();
 
-        for entry in fs::read_dir(&dict_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("txt") {
+            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
                 let file_stem = path.file_stem().unwrap().to_str().unwrap();
 
                 let should_include = match file_stem {
-                    "STCharacters" | "TSCharacters" => s2t || t2s,
-                    "STPhrases" | "HKVariants" | "TWPhrases" | "TWVariants" => s2t,
-                    "TSPhrases"
-                    | "HKVariantsRev"
-                    | "HKVariantsRevPhrases"
-                    | "TWPhrasesRev"
-                    | "TWVariantsRev"
-                    | "TWVariantsRevPhrases" => t2s,
-                    s if s.starts_with("JP") => japanese,
+                    "s2t" | "s2tw" | "s2hk" | "s2twp" | "tw2t" | "t2hk" => s2t,
+                    "t2s" | "tw2s" | "hk2s" | "tw2sp" | "t2tw" | "hk2t" => t2s,
+                    "jp2t" | "t2jp" => japanese,
                     _ => false,
                 };
 
                 if should_include {
-                    let ocd2_key_name = format!("{file_stem}.ocd2");
-                    let ocb_file_name = format!("{file_stem}.ocb");
-                    let ocb_path = dest_path.join(&ocb_file_name);
+                    let content = fs::read_to_string(&path)?;
+                    let config: Config = serde_json::from_str(&content)?;
 
-                    let ocb_bytes = compile_dictionary(&path)?;
+                    let compiler_chain =
+                        extract_compiler_chain(&config.conversion_chain, &dict_dir);
+                    let ocb_bytes = compile_chain(&compiler_chain)?;
+
+                    let ocb_path = dest_path.join(format!("{file_stem}.ocb"));
                     fs::write(&ocb_path, &ocb_bytes)?;
-                    let ocb_path_str = ocb_path.to_str().unwrap().replace('\\', "/");
-
-                    let value_code = format!("include_bytes!(r\"{ocb_path_str}\")");
-
-                    dicts_to_add.push((ocd2_key_name, value_code));
                 }
             }
         }
     }
-
-    for (key, value) in &dicts_to_add {
-        dict_map_builder.entry(key, value);
-    }
-
-    let mut config_map_builder = phf_codegen::Map::<&str>::new();
-    let mut configs_to_add: Vec<(String, String)> = Vec::new();
-
-    if assets_root.exists() {
-        for entry in fs::read_dir(&assets_root)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
-                let file_name = path.file_name().unwrap().to_str().unwrap().to_string();
-                let content = fs::read_to_string(&path)?;
-                configs_to_add.push((file_name, content));
-            }
-        }
-    }
-
-    let formatted_config_values: Vec<String> = configs_to_add
-        .iter()
-        .map(|(_, content)| format!("r#\"{}\"#", content.trim()))
-        .collect();
-
-    for (i, (file_name, _)) in configs_to_add.iter().enumerate() {
-        config_map_builder.entry(file_name, &formatted_config_values[i]);
-    }
-
-    let generated_map_path = dest_path.join("embedded_map.rs");
-    let mut file = BufWriter::new(File::create(&generated_map_path)?);
-
-    writeln!(
-        &mut file,
-        "// @generated - This file is automatically generated by build.rs."
-    )?;
-    writeln!(
-        &mut file,
-        "pub static EMBEDDED_DICTS: phf::Map<&'static str, &'static [u8]> = {};",
-        dict_map_builder.build()
-    )?;
-    writeln!(
-        &mut file,
-        "pub static EMBEDDED_CONFIGS: phf::Map<&'static str, &'static str> = {};",
-        config_map_builder.build()
-    )?;
-
-    // 诸如 nix 的构建环境很难跑起来 cbindgen，暂时注释，要改 ffi 绑定的时候再启用
-    // cbindgen::Builder::new()
-    //     .with_crate(manifest_dir)
-    //     .with_config(cbindgen::Config::from_file("cbindgen.toml").unwrap())
-    //     .generate()
-    //     .expect("Unable to generate bindings")
-    //     .write_to_file("opencc.h");
 
     Ok(())
 }

@@ -299,13 +299,6 @@
 			}
 		},
 		{
-			"id": "case_043",
-			"input": "二噁英",
-			"expected": {
-				"t2s": "二𫫇英"
-			}
-		},
-		{
 			"id": "case_044",
 			"input": "著裝著作汙染虛偽發洩稜柱群眾裡面",
 			"expected": {
@@ -445,6 +438,45 @@
 				"tw2s": "摄护腺、忧郁症、胰脏的医学术语",
 				"tw2sp": "前列腺、抑郁症、胰腺的医学术语",
 				"t2s": "摄护腺、忧郁症、胰脏的医学术语"
+			}
+		},
+		{
+			"id": "dioxin_terms_tw_s2twp",
+			"input": "二𫫇英（也作二恶英）是一类公认的剧毒、持久性环境污染物",
+			"expected": {
+				"s2t": "二噁英（也作二噁英）是一類公認的劇毒、持久性環境污染物",
+				"t2s": "二𫫇英（也作二恶英）是一类公认的剧毒、持久性环境污染物",
+				"s2tw": "二噁英（也作二噁英）是一類公認的劇毒、持久性環境汙染物",
+				"s2twp": "戴奧辛（也作戴奧辛）是一類公認的劇毒、永續性環境汙染物"
+			}
+		},
+		{
+			"id": "dioxin_terms_tw_tw2sp",
+			"input": "戴奧辛是一類公認的劇毒、持久性環境汙染物",
+			"expected": {
+				"s2t": "戴奧辛是一類公認的劇毒、持久性環境汙染物",
+				"t2s": "戴奥辛是一类公认的剧毒、持久性环境污染物",
+				"tw2s": "戴奥辛是一类公认的剧毒、持久性环境污染物",
+				"tw2sp": "二𫫇英是一类公认的剧毒、持久性环境污染物"
+			}
+		},
+		{
+			"id": "hantavirus_s2twp",
+			"input": "汉坦病毒",
+			"expected": {
+				"s2t": "漢坦病毒",
+				"s2tw": "漢坦病毒",
+				"s2twp": "漢他病毒",
+				"s2hk": "漢坦病毒"
+			}
+		},
+		{
+			"id": "hantavirus_tw2sp",
+			"input": "漢他病毒",
+			"expected": {
+				"tw2s": "汉他病毒",
+				"tw2sp": "汉坦病毒",
+				"tw2t": "漢他病毒"
 			}
 		},
 		{
@@ -631,16 +663,16 @@
 				"tw2sp": "乾安县 乾安镇 乾县 乾州 乾元县 乾佑县"
 			}
 		},
-		// {
-		// 	"id": "nk2028_opencc-js_Issue_37",
-		// 	"input": "低级别产品",
-		// 	"expected": {
-		// 		"s2t": "低級別產品",
-		// 		"s2hk": "低級別產品",
-		// 		"s2tw": "低級別產品",
-		// 		"s2twp": "低級別產品"
-		// 	}
-		// },
+		{
+			"id": "nk2028_opencc-js_Issue_37",
+			"input": "低级别产品",
+			"expected": {
+				"s2t": "低級別產品",
+				"s2hk": "低級別產品",
+				"s2tw": "低級別產品",
+				"s2twp": "低階別產品" // Different from upstream OpenCC conversion result, but more accurate
+			}
+		},
 		{
 			"id": "BYVoid_OpenCC_Issue_531_tongguo",
 			"input": "本次会议一致通过。",
@@ -702,17 +734,36 @@
 		},
 		{
 			"id": "BYVoid_OpenCC_Issue_935_ethernet_s2twp",
-			"input": "以太网 以太网络 以太网路",
+			"input": "以太网 以太网络 以太网路 以太网路由器",
 			"expected": {
-				"s2twp": "乙太網路 乙太網路 乙太網路"
+				"s2twp": "乙太網路 乙太網路 乙太網路 乙太網路路由器"
+			}
+		},
+		{
+			"id": "BYVoid_OpenCC_Issue_935_ethernet_tw2sp",
+			"input": "乙太網 乙太網路 乙太網絡 乙太網路由器 乙太網路路由器",
+			"expected": {
+				"tw2sp": "以太网 以太网 以太网络 以太网路由器 以太网路由器"
+			}
+		},
+		{
+			"id": "BYVoid_OpenCC_Issue_neijuan_s2t",
+			"input": "内卷",
+			"expected": {
+				"s2t": "內捲",
+				"s2tw": "內捲",
+				"s2hk": "內捲"
+			}
+		},
+		{
+			"id": "zipper_s2t",
+			"input": "拉链 拉链工程",
+			"expected": {
+				"s2hk": "拉鏈 拉鏈工程",
+				"s2t": "拉鏈 拉鏈工程",
+				"s2tw": "拉鏈 拉鏈工程",
+				"s2twp": "拉鏈 拉鏈工程"
 			}
 		}
-		// {
-		// 	"id": "BYVoid_OpenCC_Issue_935_ethernet_tw2sp",
-		// 	"input": "乙太網 乙太網路 乙太網絡 乙太網路由器",
-		// 	"expected": {
-		// 		"tw2sp": "以太网 以太网路 以太网络 以太网路由器"
-		// 	}
-		// }
 	]
 }

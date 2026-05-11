@@ -22,37 +22,50 @@
 
 pub mod config;
 mod conversion;
-pub mod dictionary;
+mod dictionary;
 pub mod error;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ffi;
 
-use std::path::Path;
+use std::sync::Arc;
 
-use config::Config;
-use conversion::ConversionChain;
-use error::Result;
+use conversion::Converter;
 #[cfg(feature = "wasm")]
 use wasm_bindgen::prelude::*;
 
-use crate::{
-    config::BuiltinConfig,
-    dictionary::embedded,
+use crate::config::BuiltinConfig;
+pub use crate::{
+    dictionary::FstDict,
+    error::Result,
 };
+
+macro_rules! load_dict_bytes {
+    (
+        $target:expr;
+        $( #[cfg(feature = $feat:literal)] $variant:ident => $file_name:literal ),* $(,)?
+    ) => {
+        match $target {
+            $(
+                #[cfg(feature = $feat)]
+                BuiltinConfig::$variant => include_bytes!(concat!(env!("OUT_DIR"), "/", $file_name, ".ocb")),
+            )*
+        }
+    };
+}
 
 /// The core `OpenCC` converter
 #[cfg_attr(feature = "wasm", wasm_bindgen)]
 pub struct OpenCC {
     /// Configuration name
     name: String,
-    /// The dictionary chain used for conversion
-    conversion_chain: ConversionChain,
+    /// The converter used for conversion
+    converter: Converter,
 }
 
 impl OpenCC {
     /// Creates a new `OpenCC` instance from a configuration file.
     /// Parses the JSON configuration file, loads all required dictionaries, and builds the
-    /// conversion chain.
+    /// converter.
     ///
     /// # Arguments
     ///
@@ -61,15 +74,22 @@ impl OpenCC {
     /// # Returns
     ///
     /// A `Result` containing the new `OpenCC` instance, or an error if loading fails
-    pub fn new<P: AsRef<Path>>(config_path: P) -> Result<Self> {
-        let config = Config::from_file(config_path)?;
+    #[cfg(feature = "runtime-compilation")]
+    pub fn new<P: AsRef<std::path::Path>>(config_path: P) -> Result<Self> {
+        let config_path = config_path.as_ref();
+        let config = crate::config::Config::from_file(config_path)?;
         let config_dir = config.get_config_directory();
 
-        let conversion_chain = ConversionChain::from_config(&config.conversion_chain, config_dir)?;
+        let compiler_chain = build_compiler_chain(&config, config_dir);
+
+        let ocb_bytes = ferrous_opencc_compiler::compile_chain(&compiler_chain)
+            .map_err(|e| error::OpenCCError::InvalidConfig(e.to_string()))?;
+
+        let dict = FstDict::from_ocb_bytes(&ocb_bytes)?;
 
         Ok(Self {
             name: config.name,
-            conversion_chain,
+            converter: Converter::new(Arc::new(dict)),
         })
     }
 
@@ -89,18 +109,36 @@ impl OpenCC {
     /// }
     /// ```
     pub fn from_config(config_enum: BuiltinConfig) -> Result<Self> {
-        let name = config_enum.to_filename();
-        let config_str = embedded::EMBEDDED_CONFIGS
-            .get(name)
-            .ok_or_else(|| error::OpenCCError::ConfigNotFound(name.to_string()))?;
+        let json_name = config_enum.to_filename();
 
-        let config: Config = config_str.parse()?;
+        let dict_bytes: &[u8] = load_dict_bytes!(config_enum;
+            #[cfg(feature = "s2t-conversion")] S2t => "s2t",
+            #[cfg(feature = "t2s-conversion")] T2s => "t2s",
 
-        let conversion_chain = ConversionChain::from_config_embedded(&config.conversion_chain)?;
+            #[cfg(feature = "s2t-conversion")] S2tw => "s2tw",
+            #[cfg(feature = "t2s-conversion")] Tw2s => "tw2s",
+
+            #[cfg(feature = "s2t-conversion")] S2hk => "s2hk",
+            #[cfg(feature = "t2s-conversion")] Hk2s => "hk2s",
+
+            #[cfg(feature = "s2t-conversion")] S2twp => "s2twp",
+            #[cfg(feature = "t2s-conversion")] Tw2sp => "tw2sp",
+
+            #[cfg(feature = "t2s-conversion")] T2tw => "t2tw",
+            #[cfg(feature = "s2t-conversion")] Tw2t => "tw2t",
+
+            #[cfg(feature = "s2t-conversion")] T2hk => "t2hk",
+            #[cfg(feature = "t2s-conversion")] Hk2t => "hk2t",
+
+            #[cfg(feature = "japanese-conversion")] Jp2t => "jp2t",
+            #[cfg(feature = "japanese-conversion")] T2jp => "t2jp",
+        );
+
+        let dict = FstDict::from_ocb_bytes(dict_bytes)?;
 
         Ok(Self {
-            name: config.name,
-            conversion_chain,
+            name: json_name.to_string(),
+            converter: Converter::new(Arc::new(dict)),
         })
     }
 
@@ -115,13 +153,51 @@ impl OpenCC {
     /// The converted string
     #[must_use]
     pub fn convert(&self, input: &str) -> String {
-        self.conversion_chain.convert(input)
+        self.converter.convert(input)
     }
 
     /// Returns the name of the currently loaded configuration
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
+    }
+}
+
+#[cfg(feature = "runtime-compilation")]
+fn build_compiler_chain(
+    config: &crate::config::Config,
+    config_dir: &std::path::Path,
+) -> ferrous_opencc_compiler::CompilerChain {
+    use ferrous_opencc_compiler::{
+        CompilerChain,
+        CompilerDictGroup,
+    };
+
+    let mut groups = Vec::new();
+    for node in &config.conversion_chain {
+        let mut paths = Vec::new();
+
+        collect_dict_paths(&node.dict, config_dir, &mut paths);
+
+        groups.push(CompilerDictGroup { dict_paths: paths });
+    }
+    CompilerChain { groups }
+}
+
+#[cfg(feature = "runtime-compilation")]
+fn collect_dict_paths(
+    dict_cfg: &crate::config::DictConfig,
+    config_dir: &std::path::Path,
+    paths: &mut Vec<std::path::PathBuf>,
+) {
+    if let Some(file) = &dict_cfg.file {
+        let actual_file = file.replace(".ocd2", ".txt");
+        paths.push(config_dir.join(actual_file));
+    }
+    if let Some(dicts) = &dict_cfg.dicts {
+        for d in dicts {
+            collect_dict_paths(d, config_dir, paths);
+        }
     }
 }
 
