@@ -63,6 +63,10 @@ runtime-compilation = ["dep:ferrous-opencc-compiler"]
 name = "performance"
 harness = false
 
+[[bench]]
+name = "s2twp_bench"
+harness = false
+
 [patch.crates-io]
 ferrous-opencc-compiler = { path = "ferrous-opencc-compiler" }
 

@@ -31,7 +31,10 @@ ferrous-opencc = "0.4"
 使用内置的配置名创建 OpenCC 实例，无需外部文件：
 
 ```rust
-use ferrous_opencc::{OpenCC, Result};
+use ferrous_opencc::{
+    OpenCC,
+    Result,
+};
 
 fn main() -> Result<()> {
     // 使用内置配置创建 OpenCC 实例
@@ -41,7 +44,7 @@ fn main() -> Result<()> {
     let text = "开放中文转换是完全由 Rust 实现的。";
     let converted = opencc.convert(text);
 
-    println!("{}", converted);
+    println!("{converted}");
     // 预期输出: 開放中文轉換是完全由 Rust 實現的。
 
     assert_eq!(converted, "開放中文轉換是完全由 Rust 實現的。");
