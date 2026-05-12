@@ -126,6 +126,10 @@ fn run() -> Result<()> {
 
     if !all_configs.is_empty() {
         let ocb_bytes = compile_global_dictionary(&all_configs)?;
+
+        #[cfg(feature = "compress")]
+        let ocb_bytes = ferrous_opencc_compiler::compress_dictionary(&ocb_bytes)?;
+
         let ocb_path = dest_path.join("global_dictionary.ocb");
         fs::write(&ocb_path, &ocb_bytes)?;
     }

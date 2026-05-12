@@ -11,6 +11,10 @@ struct Args {
 
     #[arg(short, long)]
     output: PathBuf,
+
+    #[cfg(feature = "compress")]
+    #[arg(long)]
+    compress: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -27,6 +31,14 @@ fn main() -> anyhow::Result<()> {
 
     dict.serialize_to_file(&args.output)
         .map_err(|e| anyhow::anyhow!("Failed to serialize binary dictionary: {e}"))?;
+
+    #[cfg(feature = "compress")]
+    if args.compress {
+        let raw = std::fs::read(&args.output)?;
+        let compressed = ferrous_opencc_compiler::compress_dictionary(&raw)
+            .map_err(|e| anyhow::anyhow!("Failed to compress dictionary: {e}"))?;
+        std::fs::write(&args.output, compressed)?;
+    }
 
     println!("Compilation successful.");
 

@@ -29,6 +29,7 @@ serde_json = "1"
 thiserror = "2"
 
 clap = { version = "4.5", features = ["derive"], optional = true }
+ruzstd = { version = "0.8", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 
 [build-dependencies]
@@ -58,6 +59,8 @@ wasm = ["dep:wasm-bindgen", "s2t-conversion", "t2s-conversion"]
 full = ["s2t-conversion", "t2s-conversion", "japanese-conversion"]
 
 runtime-compilation = ["dep:ferrous-opencc-compiler"]
+
+compress = ["dep:ruzstd", "ferrous-opencc-compiler/compress"]
 
 [[bench]]
 name = "performance"

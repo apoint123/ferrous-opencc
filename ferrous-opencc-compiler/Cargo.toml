@@ -9,3 +9,7 @@ license = "Apache-2.0"
 anyhow = "1"
 rkyv = { version = "0.8" }
 fst = "0"
+zstd = { version = "0.13", optional = true }
+
+[features]
+compress = ["dep:zstd"]

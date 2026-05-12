@@ -17,6 +17,9 @@ use rkyv::{
 
 use crate::error::Result;
 
+#[cfg(feature = "compress")]
+const COMPRESSION_MAGIC: &[u8; 4] = b"CMP\0";
+
 pub trait Dictionary: Send + Sync + Debug {
     fn match_prefix<'a, 'b>(&'a self, config_id: u8, word: &'b str) -> Option<(&'b str, &'a str)>;
 }
@@ -62,6 +65,19 @@ impl FstDict {
     }
 
     pub fn from_ocb_bytes(bytes: &[u8]) -> Result<Self> {
+        #[cfg(feature = "compress")]
+        {
+            if bytes.starts_with(COMPRESSION_MAGIC) {
+                let compressed = &bytes[4..];
+                let mut decoder =
+                    ruzstd::decoding::StreamingDecoder::new(compressed).map_err(|e| {
+                        std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string())
+                    })?;
+                let mut decompressed = Vec::new();
+                std::io::Read::read_to_end(&mut decoder, &mut decompressed)?;
+                return Self::from_reader(decompressed.as_slice());
+            }
+        }
         Self::from_reader(bytes)
     }
 

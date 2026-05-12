@@ -216,6 +216,19 @@ fn build_flat_map(chain: &CompilerChain) -> Result<BTreeMap<String, Vec<String>>
     Ok(flat_map)
 }
 
+pub const COMPRESSION_MAGIC: &[u8; 4] = b"CMP\0";
+
+#[cfg(feature = "compress")]
+pub fn compress_dictionary(ocb_bytes: &[u8]) -> Result<Vec<u8>> {
+    let compressed = zstd::encode_all(ocb_bytes, 21)
+        .map_err(|e| anyhow::anyhow!("Zstd compression failed: {e}"))?;
+
+    let mut output = Vec::with_capacity(4 + compressed.len());
+    output.extend_from_slice(COMPRESSION_MAGIC);
+    output.extend_from_slice(&compressed);
+    Ok(output)
+}
+
 pub fn compile_global_dictionary(configs: &[(u8, CompilerChain)]) -> Result<Vec<u8>> {
     let mut global_values: Vec<Vec<String>> = Vec::new();
     let mut value_to_index: HashMap<Vec<String>, u64> = HashMap::new();
