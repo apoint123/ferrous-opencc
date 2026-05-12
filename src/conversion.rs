@@ -4,11 +4,12 @@ use crate::dictionary::Dictionary;
 
 pub struct Converter {
     dict: Arc<dyn Dictionary>,
+    config_id: u8,
 }
 
 impl Converter {
-    pub fn new(dict: Arc<dyn Dictionary>) -> Self {
-        Self { dict }
+    pub fn new(dict: Arc<dyn Dictionary>, config_id: u8) -> Self {
+        Self { dict, config_id }
     }
 
     pub fn convert(&self, text: &str) -> String {
@@ -18,7 +19,7 @@ impl Converter {
         while i < text.len() {
             let remaining_text = &text[i..];
 
-            if let Some((key, value)) = self.dict.match_prefix(remaining_text) {
+            if let Some((key, value)) = self.dict.match_prefix(self.config_id, remaining_text) {
                 result.push_str(value);
                 i += key.len();
             } else {

@@ -2,6 +2,7 @@ use std::{
     collections::{
         BTreeMap,
         BTreeSet,
+        HashMap,
     },
     fs::File,
     io::{
@@ -29,7 +30,6 @@ use rkyv::{
 #[derive(Archive, Serialize, Deserialize, Debug)]
 pub struct SerializableFstDict {
     pub values: Vec<Vec<String>>,
-    pub max_key_length: u32,
 }
 
 pub struct CompilerDictGroup {
@@ -70,44 +70,6 @@ fn load_txt_dict(path: &Path) -> Result<BTreeMap<String, Vec<String>>> {
         }
     }
     Ok(entries)
-}
-
-fn build_fst_from_map(
-    entries: BTreeMap<String, Vec<String>>,
-    max_key_length: u32,
-) -> Result<Vec<u8>> {
-    let mut values_vec: Vec<Vec<String>> = Vec::with_capacity(entries.len());
-    let mut builder = MapBuilder::memory();
-
-    for (key, values) in entries {
-        let index = values_vec.len() as u64;
-        values_vec.push(values);
-        builder
-            .insert(key, index)
-            .with_context(|| "Failed to insert into FST")?;
-    }
-
-    let fst_map_bytes = builder
-        .into_inner()
-        .with_context(|| "Failed to finalize FST")?;
-
-    let metadata = SerializableFstDict {
-        values: values_vec,
-        max_key_length,
-    };
-
-    let metadata_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&metadata)
-        .map_err(|e| anyhow::anyhow!("Rkyv serialization failed: {e}"))?
-        .into_vec();
-
-    let total_size = 8 + metadata_bytes.len() + fst_map_bytes.len();
-    let mut final_bytes = Vec::with_capacity(total_size);
-
-    final_bytes.write_all(&(metadata_bytes.len() as u64).to_le_bytes())?;
-    final_bytes.write_all(&metadata_bytes)?;
-    final_bytes.write_all(&fst_map_bytes)?;
-
-    Ok(final_bytes)
 }
 
 fn convert_str_with_map(text: &str, map: &BTreeMap<String, Vec<String>>, max_len: usize) -> String {
@@ -187,7 +149,7 @@ fn generate_reverse_keys(
     current_path.truncate(old_len);
 }
 
-pub fn compile_chain(chain: &CompilerChain) -> Result<Vec<u8>> {
+fn build_flat_map(chain: &CompilerChain) -> Result<BTreeMap<String, Vec<String>>> {
     let mut flat_map: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for (i, group) in chain.groups.iter().enumerate() {
@@ -251,10 +213,56 @@ pub fn compile_chain(chain: &CompilerChain) -> Result<Vec<u8>> {
         }
     }
 
-    let max_len_usize = flat_map.keys().map(|k| k.len()).max().unwrap_or_default();
-    let final_max_length = max_len_usize
-        .try_into()
-        .expect("Dictionary key length exceeds u32::MAX (4GB)");
+    Ok(flat_map)
+}
 
-    build_fst_from_map(flat_map, final_max_length)
+pub fn compile_global_dictionary(configs: &[(u8, CompilerChain)]) -> Result<Vec<u8>> {
+    let mut global_values: Vec<Vec<String>> = Vec::new();
+    let mut value_to_index: HashMap<Vec<String>, u64> = HashMap::new();
+    let mut global_map: BTreeMap<Vec<u8>, u64> = BTreeMap::new();
+
+    for (config_id, chain) in configs {
+        let flat_map = build_flat_map(chain)?;
+
+        for (k, v) in flat_map {
+            let val_idx = *value_to_index.entry(v.clone()).or_insert_with(|| {
+                let idx = global_values.len() as u64;
+                global_values.push(v);
+                idx
+            });
+
+            let mut key_bytes = Vec::with_capacity(1 + k.len());
+            key_bytes.push(*config_id);
+            key_bytes.extend_from_slice(k.as_bytes());
+
+            global_map.insert(key_bytes, val_idx);
+        }
+    }
+
+    let mut builder = MapBuilder::memory();
+    for (key_bytes, val_idx) in global_map {
+        builder
+            .insert(key_bytes, val_idx)
+            .with_context(|| "Failed to insert into global FST")?;
+    }
+    let fst_map_bytes = builder
+        .into_inner()
+        .with_context(|| "Failed to finalize global FST")?;
+
+    let metadata = SerializableFstDict {
+        values: global_values,
+    };
+
+    let metadata_bytes = rkyv::to_bytes::<rkyv::rancor::Error>(&metadata)
+        .map_err(|e| anyhow::anyhow!("Rkyv serialization failed: {e}"))?
+        .into_vec();
+
+    let total_size = 8 + metadata_bytes.len() + fst_map_bytes.len();
+    let mut final_bytes = Vec::with_capacity(total_size);
+
+    final_bytes.write_all(&(metadata_bytes.len() as u64).to_le_bytes())?;
+    final_bytes.write_all(&metadata_bytes)?;
+    final_bytes.write_all(&fst_map_bytes)?;
+
+    Ok(final_bytes)
 }

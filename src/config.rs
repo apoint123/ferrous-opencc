@@ -32,7 +32,7 @@ pub struct Config {
 }
 
 /// All built-in `OpenCC` configurations
-#[repr(i32)]
+#[repr(u8)]
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BuiltinConfig {
     /// Simplified to Traditional
@@ -200,5 +200,42 @@ impl FromStr for Config {
     fn from_str(s: &str) -> Result<Self> {
         let config: Self = serde_json::from_str(s)?;
         Ok(config)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_builtin_config_routing_ids() {
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::S2t as u8, 0);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::T2s as u8, 1);
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::S2tw as u8, 2);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::Tw2s as u8, 3);
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::S2hk as u8, 4);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::Hk2s as u8, 5);
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::S2twp as u8, 6);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::Tw2sp as u8, 7);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::T2tw as u8, 8);
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::Tw2t as u8, 9);
+        #[cfg(feature = "s2t-conversion")]
+        assert_eq!(BuiltinConfig::T2hk as u8, 10);
+        #[cfg(feature = "t2s-conversion")]
+        assert_eq!(BuiltinConfig::Hk2t as u8, 11);
+        #[cfg(feature = "japanese-conversion")]
+        assert_eq!(BuiltinConfig::Jp2t as u8, 12);
+        #[cfg(feature = "japanese-conversion")]
+        assert_eq!(BuiltinConfig::T2jp as u8, 13);
     }
 }

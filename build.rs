@@ -14,7 +14,7 @@ use anyhow::{
 use ferrous_opencc_compiler::{
     CompilerChain,
     CompilerDictGroup,
-    compile_chain,
+    compile_global_dictionary,
 };
 use serde::Deserialize;
 
@@ -78,6 +78,8 @@ fn run() -> Result<()> {
     let t2s = env::var("CARGO_FEATURE_T2S_CONVERSION").is_ok();
     let japanese = env::var("CARGO_FEATURE_JAPANESE_CONVERSION").is_ok();
 
+    let mut all_configs: Vec<(u8, CompilerChain)> = Vec::new();
+
     if assets_root.exists() {
         for entry in fs::read_dir(&assets_root)? {
             let path = entry?.path();
@@ -93,18 +95,39 @@ fn run() -> Result<()> {
                 };
 
                 if should_include {
+                    let config_id: u8 = match file_stem {
+                        "s2t" => 0,
+                        "t2s" => 1,
+                        "s2tw" => 2,
+                        "tw2s" => 3,
+                        "s2hk" => 4,
+                        "hk2s" => 5,
+                        "s2twp" => 6,
+                        "tw2sp" => 7,
+                        "t2tw" => 8,
+                        "tw2t" => 9,
+                        "t2hk" => 10,
+                        "hk2t" => 11,
+                        "jp2t" => 12,
+                        "t2jp" => 13,
+                        _ => continue,
+                    };
+
                     let content = fs::read_to_string(&path)?;
                     let config: Config = serde_json::from_str(&content)?;
-
                     let compiler_chain =
                         extract_compiler_chain(&config.conversion_chain, &dict_dir);
-                    let ocb_bytes = compile_chain(&compiler_chain)?;
 
-                    let ocb_path = dest_path.join(format!("{file_stem}.ocb"));
-                    fs::write(&ocb_path, &ocb_bytes)?;
+                    all_configs.push((config_id, compiler_chain));
                 }
             }
         }
+    }
+
+    if !all_configs.is_empty() {
+        let ocb_bytes = compile_global_dictionary(&all_configs)?;
+        let ocb_path = dest_path.join("global_dictionary.ocb");
+        fs::write(&ocb_path, &ocb_bytes)?;
     }
 
     Ok(())

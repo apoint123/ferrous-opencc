@@ -18,13 +18,12 @@ use rkyv::{
 use crate::error::Result;
 
 pub trait Dictionary: Send + Sync + Debug {
-    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)>;
+    fn match_prefix<'a, 'b>(&'a self, config_id: u8, word: &'b str) -> Option<(&'b str, &'a str)>;
 }
 
 #[derive(Archive, Serialize, Deserialize, Debug)]
 pub struct SerializableFstDict {
     pub values: Vec<Vec<String>>,
-    pub max_key_length: u32,
 }
 
 #[derive(Debug)]
@@ -42,8 +41,11 @@ impl FstDict {
             }],
         };
 
-        let ocb_bytes = ferrous_opencc_compiler::compile_chain(&single_dict_chain)
-            .map_err(|e| crate::error::OpenCCError::InvalidConfig(e.to_string()))?;
+        let ocb_bytes = ferrous_opencc_compiler::compile_global_dictionary(&[(
+            crate::DYNAMIC_CONFIG_ID,
+            single_dict_chain,
+        )])
+        .map_err(|e| crate::error::OpenCCError::InvalidConfig(e.to_string()))?;
 
         Self::from_ocb_bytes(&ocb_bytes)
     }
@@ -88,40 +90,44 @@ impl FstDict {
 }
 
 impl Dictionary for FstDict {
-    fn match_prefix<'a, 'b>(&'a self, word: &'b str) -> Option<(&'b str, &'a str)> {
+    fn match_prefix<'a, 'b>(&'a self, config_id: u8, word: &'b str) -> Option<(&'b str, &'a str)> {
         let fst = self.map.as_fst();
         let mut node = fst.root();
 
-        let mut last_match: Option<(usize, u64)> = None;
+        if let Some(trans_idx) = node.find_input(config_id) {
+            let t = node.transition(trans_idx);
+            let mut current_output = t.out.value();
+            node = fst.node(t.addr);
 
-        let mut current_output: u64 = 0;
+            let mut last_match: Option<(usize, u64)> = None;
 
-        for (i, byte) in word.as_bytes().iter().enumerate() {
-            if let Some(trans_idx) = node.find_input(*byte) {
-                let t = node.transition(trans_idx);
-                current_output += t.out.value();
-                node = fst.node(t.addr);
+            for (i, byte) in word.as_bytes().iter().enumerate() {
+                if let Some(trans_idx) = node.find_input(*byte) {
+                    let t = node.transition(trans_idx);
+                    current_output += t.out.value();
+                    node = fst.node(t.addr);
 
-                if node.is_final() {
-                    let final_value = current_output + node.final_output().value();
-                    last_match = Some((i + 1, final_value));
+                    if node.is_final() {
+                        let final_value = current_output + node.final_output().value();
+                        last_match = Some((i + 1, final_value));
+                    }
+                } else {
+                    break;
                 }
-            } else {
-                break;
             }
-        }
 
-        if let Some((len, value_index)) = last_match {
-            let metadata = unsafe {
-                rkyv::access_unchecked::<ArchivedSerializableFstDict>(&self.metadata_bytes)
-            };
+            if let Some((len, value_index)) = last_match {
+                let metadata = unsafe {
+                    rkyv::access_unchecked::<ArchivedSerializableFstDict>(&self.metadata_bytes)
+                };
 
-            if let Ok(safe_index) = value_index.try_into()
-                && let Some(values) = metadata.values.get::<usize>(safe_index)
-                && let Some(first_value) = values.iter().next()
-            {
-                let key = &word[..len];
-                return Some((key, first_value.as_str()));
+                if let Ok(safe_index) = value_index.try_into()
+                    && let Some(values) = metadata.values.get::<usize>(safe_index)
+                    && let Some(first_value) = values.iter().next()
+                {
+                    let key = &word[..len];
+                    return Some((key, first_value.as_str()));
+                }
             }
         }
 
